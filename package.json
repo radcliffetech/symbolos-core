@@ -1,13 +1,14 @@
 {
   "name": "@radcliffetech/symbolos-core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Core symbolic simulation and execution engine for Symbolos",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "type": "module",
   "scripts": {
     "build": "tsc",
-    "start": "tsx core/cli/run-world-simulator.ts",
-    "dev": "tsx core/cli/run-world-simulator.ts",
+    "start": "tsx cli/run-world-simulator.ts",
+    "dev": "tsx cli/run-world-simulator.ts",
     "test": "vitest run"
   },
   "bin": {
@@ -22,6 +23,7 @@
   "license": "MIT",
   "dependencies": {
     "chalk": "^5.4.1",
+    "uuid": "^11.1.0",
     "yargs": "^18.0.0"
   },
   "devDependencies": {
@@ -31,5 +33,16 @@
     "tsx": "^4.7.0",
     "typescript": "^5.2.2",
     "vitest": "^0.34.6"
-  }
+  },
+  "files": [
+    "core/",
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/radcliffetech/symbolos-core.git"
+  },
+  "author": "Jeffrey Radcliffe"
 }

@@ -8,14 +8,20 @@
     "resolveJsonModule": true,
     "baseUrl": "./",
     "paths": {
-      "@core/*": ["core/*"],
-      "@sim/*": ["simulators/*"],
-      "@cli/*": ["cli/*"]
+      "@core/*": ["core/*"]
     },
     "outDir": "dist",
     "declaration": true,
     "skipLibCheck": true
   },
-  "include": ["core/**/*", "simulators/**/*", "pipelines/**/*", "cli/**/*"],
+  "include": [
+    "core/**/*",
+    "simulators/**/*",
+    "pipelines/**/*",
+    "cli/**/*",
+    "examples/functors",
+    "core/pipelines",
+    "cli"
+  ],
   "exclude": ["node_modules", "dist"]
 }

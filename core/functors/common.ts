@@ -1,5 +1,7 @@
 import type { Functor, SymbolicLink, SymbolicObject } from '@core/types';
 
+import { createSymbolicObject } from '../../core/lib/object-factory';
+
 export const LinkSymbols: Functor<
   {
     from: SymbolicObject;
@@ -18,18 +20,16 @@ export const LinkSymbols: Functor<
   async apply(input) {
     const { from, to, relationship, label, description } = input;
 
-    return {
+    return createSymbolicObject<SymbolicLink>('SymbolicLink', {
       id: `link-${from.id}-${to.id}-${relationship}`,
-      type: 'SymbolicLink',
       fromId: from.id,
       toId: to.id,
-      rootId: 'link-root', // everything that is a link has the same root. How about that?
+      rootId: 'link-root',
       relationship,
       label: label ?? `${from.type} → ${to.type}`,
       description: description ?? `Linked by relationship: ${relationship}`,
-      createdAt: new Date().toISOString(),
       status: 'active',
-    };
+    });
   },
 
   describeProvenance(input) {

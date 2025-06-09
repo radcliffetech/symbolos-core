@@ -1,8 +1,11 @@
 # .npmignore
 docs/
-core/cli/
+examples/
+cli/
 .vscode/
 sandbox/
+
+# Logs
 *.log
 
 # Exclude all test files and test folders

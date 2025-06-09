@@ -1,5 +1,7 @@
 import type { Constellation, ConwayCell, Functor } from '@core/types';
 
+import { createSymbolicObject } from '../../core/lib/object-factory';
+
 interface TransformationInput {
   width: number;
   height: number;
@@ -74,15 +76,14 @@ export const InitializeConwayCells: Functor<TransformationInput, Constellation<C
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const alive = seed.some(([gx, gy]) => gx === x && gy === y);
-        constellation.objects.push({
-          type: 'ConwayCell',
-          id: `cell-${x}-${y}-t0`,
+        constellation.objects.push(createSymbolicObject<ConwayCell>(
+          'ConwayCell',{
           position: [x, y],
           tick: 0,
           status: alive ? 'alive' : 'dead',
           rootId: id,
-          createdAt: now,
-        });
+          id: `cell-${x}-${y}-t0`,
+        }));
       }
     }
 
@@ -115,10 +116,8 @@ export const StepConwayCells: Functor<TransformationInputStepConway, Constellati
 
   async apply({ constellation, step }) {
     const now = new Date().toISOString();
-    const id = `constellation-conway-t${step}`;
-
     const next: Constellation<ConwayCell> = {
-      id,
+      id:`constellation-conway-t${step}`,
       type: 'Constellation',
       createdAt: now,
       updatedAt: now,
@@ -175,18 +174,16 @@ export const StepConwayCells: Functor<TransformationInputStepConway, Constellati
           (wasAlive && (aliveNeighbors === 2 || aliveNeighbors === 3)) ||
           (!wasAlive && aliveNeighbors === 3);
 
-        next.objects.push({
-          type: 'ConwayCell',
-          id: `cell-${x}-${y}-t${step}`,
+        next.objects.push(createSymbolicObject<ConwayCell>('ConwayCell', {
           position: [x, y],
           tick: step,
           status: shouldLive ? 'alive' : 'dead',
           rootId: constellation.rootId,
-          createdAt: now,
           generatedFrom: {
             priorId: prev?.id ?? '',
           },
-        });
+          id: `cell-${x}-${y}-t${step}`,
+        }));
       }
     }
 

@@ -1,6 +1,6 @@
-# [![CI](https://github.com/radcliffetch/symbolos-core/actions/workflows/ci.yml/badge.svg)](https://github.com/radcliffetch/symbolos-core/actions/workflows/ci.yml)
-
 # 🧠 Symbolos Core
+
+[![npm version](https://img.shields.io/npm/v/symbolos-core.svg)](https://www.npmjs.com/package/symbolos-core)
 
 **Symbolos Core** is a meta-systems substrate, a symbolic simulation and transformation engine. It enables programmable worlds, causal pipelines, and agent-based symbolic reasoning using structured Functors and Pipelines.
 
@@ -8,23 +8,29 @@ This core module provides the universal symbolic substrate for higher-level appl
 
 ---
 
+## ❓ Why Symbolos Core?
+
+Symbolos Core is designed for researchers, system architects, and AI builders who want a programmable foundation for simulating and transforming symbolic systems. It enables composable, introspectable worlds with structured change over time.
+
+Common use cases include:
+
+- Simulation of agents and symbolic environments
+- Symbolic planning, memory, and world forking
+- Procedural metaphysics and world generation
+- Building blocks for language, art, and cognition tools
+
+---
+
 ## 📁 File Structure
 
 ```
 symbolos-core/
+├── cli/                           # CLI entry point for running simulations
 ├── core/
-│   ├── cli/                       # CLI entry point for running simulations
-│   ├── functors/                  # Domain-agnostic reusable functors
-│   ├── lib/utils/                 # File and functor application helpers
-│   ├── pipelines/examples/        # Example pipelines (e.g. Conway's Game of Life)
+│   ├── utils/                     # File and functor application helpers
 │   ├── simulators/                # World simulator logic and test suite
 │   └── types/                     # Core symbolic type definitions
 ├── docs/                          # Supporting documentation
-├── LICENSE                        # License for Symbolos Core
-├── package.json                   # Project metadata and dependencies
-├── pnpm-lock.yaml                 # Lockfile for deterministic builds
-├── README.md                      # You are here
-└── tsconfig.json                  # TypeScript configuration
 ```
 
 ---
@@ -41,24 +47,67 @@ symbolos-core/
 
 ## 🚀 Getting Started
 
-```bash
-pnpm install
-pnpm dev
-```
-
-Use the CLI to run or fork simulations using the `conway-game` pipeline or your own.
+### 📦 Installation
 
 ```bash
-pnpm dev -- --pipelineId=conway-game
+pnpm add symbolos-core
 ```
 
----
+Or with npm:
+
+```bash
+npm install symbolos-core
+```
+
+Use `pnpm dev` to launch the CLI world simulator interactively.
+
+### 🔍 Usage Example
+
+```ts
+import {
+  PipelineArgs,
+  createSymbolicObject,
+  makeNewWorld,
+  runWorldPipeline,
+} from "symbolos-core";
+import { conwayGame } from "symbolos-core/pipelines/conway-game-of-life";
+
+const pipelineArgs = createSymbolicObject<PipelineArgs>("PipelineArgs", {
+  params: {
+    steps: 20,
+    seedPattern: "glider",
+    width: 9,
+    height: 9,
+  },
+});
+
+const newWorld = await runWorldPipeline({
+  world: makeNewWorld("poc-conway"),
+  steps: conwayGame.getSteps(pipelineArgs),
+  pipelineArgs,
+  config: {
+    verbose: true,
+    outputRoot: "./output",
+    archiveDirName: "conway-archive",
+    compress: true,
+  },
+});
+console.log(`✅ Simulation completed. Final tick: ${newWorld.tick}`);
+console.log(`🔢 World contains ${newWorld.artifacts.size} symbolic objects.`);
+```
+
+## ✅ Testing
+
+```bash
+pnpm test
+```
 
 ## 🧩 License
 
 The **Symbolos Core** engine is licensed under the [MIT License](./LICENSE).
 
 This license applies to the symbolic execution substrate, including:
+
 - Core types
 - Functors
 - Pipeline execution
@@ -71,6 +120,7 @@ This license applies to the symbolic execution substrate, including:
 **Domain-specific extensions** of Symbolos — including pipelines, cognitive agents, metaphysical simulation layers, and advanced orchestration — are **not included** in this license.
 
 These components are protected intellectual property and may be:
+
 - Licensed separately for research or commercial use
 - Reserved for internal or future public distribution
 

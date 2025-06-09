@@ -1,6 +1,6 @@
-import { BaseSymbolicObject } from './base';
-import { FunctorStep } from './transformation';
-import { PipelineArgs } from './orchestration';
+import { BaseSymbolicObject } from "./base";
+import { FunctorStep } from "./transformation";
+import { PipelineArgs } from "./orchestration";
 
 /** Describes a pipeline's structure and parameters */
 export interface PipelineDefinition {
@@ -12,7 +12,7 @@ export interface PipelineDefinition {
     optional?: string[];
     defaults?: Record<string, any>;
   };
-  steps: (args: PipelineArgs) => FunctorStep[];
+  getSteps: (args: PipelineArgs) => FunctorStep[];
 }
 
 /**
@@ -26,4 +26,18 @@ export type WorldInstance = {
   pipelineId: string;
   artifacts: Map<string, BaseSymbolicObject>;
   context: Record<string, any>;
+};
+
+/**
+ * Represents a symbolic world snapshot frame, suitable for archival.
+ */
+export type WorldFrame = BaseSymbolicObject & {
+  type: "WorldFrame";
+  tick: number;
+  step: number;
+  pipelineId: string;
+  runId: string;
+  memberIds?: string[];
+  members: BaseSymbolicObject[];
+  metadata?: Record<string, any>;
 };
