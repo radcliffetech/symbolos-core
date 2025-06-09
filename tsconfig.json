@@ -7,21 +7,10 @@
     "strict": true,
     "resolveJsonModule": true,
     "baseUrl": "./",
-    "paths": {
-      "@core/*": ["core/*"]
-    },
     "outDir": "dist",
     "declaration": true,
     "skipLibCheck": true
   },
-  "include": [
-    "core/**/*",
-    "simulators/**/*",
-    "pipelines/**/*",
-    "cli/**/*",
-    "examples/functors",
-    "core/pipelines",
-    "cli"
-  ],
+  "include": ["src/**/*", "examples/**/*"],
   "exclude": ["node_modules", "dist"]
 }
