@@ -1,14 +1,13 @@
+import type { FunctorStep, PipelineArgs, PipelineRun, SymbolicObject } from '@core/types';
 import { createWorldFromFrame, makeNewWorld, runWorldPipeline } from './world-simulator';
 import { describe, expect, it } from 'vitest';
 
-import type { FunctorStep } from '../../../../core/types/transformation';
-import type { PipelineArgs } from '../../../../core/types/orchestration';
-import type { SymbolicWorldFrame } from '../lib/utils/world-utils';
+import type { SymbolicWorldFrame } from '@core/lib/utils/world-utils';
 import { forkWorld } from './world-simulator';
 
-it('forks a world and retains artifacts and context', () => {
+it('forks a world and retains aonst userArgs: Prtifacts and context', () => {
   const original = makeNewWorld('fire-spread');
-  const obj = { id: 'x', type: 'Thing' };
+  const obj: SymbolicObject = { id: 'x', type: 'Thing', createdAt: new Date().toISOString() , status: 'active' };
   original.artifacts.set('x', obj);
 
   const forked = forkWorld(original, { firebreak: true });
@@ -56,6 +55,10 @@ describe('world-simulator', () => {
       type: 'PipelineArgs',
       id: 'args-1',
       createdAt: new Date().toISOString(),
+      status: 'valid',
+      pipelineId: 'test-pipeline',
+      runId: world.runId,
+      params: {},
     };
 
     const steps: FunctorStep[] = [
@@ -95,7 +98,11 @@ it('stores step output in context under expected key', async () => {
   const userArgs: PipelineArgs = {
     type: 'PipelineArgs',
     id: 'args-2',
+    status: 'valid',
+    runId: world.runId,
+    pipelineId: 'test-pipeline',
     createdAt: new Date().toISOString(),
+      params: {},
   };
 
   const steps: FunctorStep[] = [
@@ -213,6 +220,7 @@ it('runs a different pipeline after forking and generates a distinct PipelineRun
   const userArgs: PipelineArgs = {
     type: 'PipelineArgs',
     id: 'args-fork',
+    status: 'valid',
     createdAt: new Date().toISOString(),
     runId: forked.runId,
     pipelineId: 'forked-pipeline',
@@ -252,7 +260,7 @@ it('runs a different pipeline after forking and generates a distinct PipelineRun
   );
 
   expect(pipelineRuns.length).toBe(1);
-  expect(pipelineRuns[0].pipelineId).toBe('starter-pipeline');
+  expect((pipelineRuns[0] as PipelineRun).pipelineId).toBe('starter-pipeline');
   expect(pipelineRuns[0].label).toMatch(/Forked Run/);
 });
 
@@ -285,6 +293,7 @@ it('creates multiple forks from a base world and runs separate pipelines', async
       const userArgs: PipelineArgs = {
         type: 'PipelineArgs',
         id: `args-${label}`,
+        status: 'valid',
         createdAt: new Date().toISOString(),
         runId: forked.runId,
         pipelineId: `branch-${index + 1}`,
