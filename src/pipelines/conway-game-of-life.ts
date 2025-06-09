@@ -2,7 +2,7 @@ import {
   InitializeConwayCells,
   StepConwayCells,
 } from "../functors/conway-game-of-life";
-import type { PipelineArgs, PipelineDefinition } from "@core/types";
+import type { PipelineArgs, PipelineDefinition } from "../types";
 
 import { LinkSymbols } from "../functors/common";
 

@@ -1,4 +1,4 @@
-import type { Functor, SymbolicLink, SymbolicObject } from "@core/types";
+import type { Functor, SymbolicLink, SymbolicObject } from "../types";
 
 import { createSymbolicObject } from "../lib/object-factory";
 

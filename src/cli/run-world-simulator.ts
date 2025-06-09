@@ -6,19 +6,19 @@ import {
   runWorldPipeline,
 } from "../..";
 
-import { SYMBOLOS_VERSION } from "../../core/version";
+import { SYMBOLOS_VERSION } from "../version";
 
-import { conwayGame } from "../core/pipelines/conway-game-of-life";
+import { conwayGame } from "../pipelines/conway-game-of-life";
 
 import {
   WorldArchive,
   PipelineArgs,
   SymbolicObject,
   PipelineDefinition,
-} from "@core/types";
+} from "../types";
 import chalk from "chalk";
 import { hideBin } from "yargs/helpers";
-import { readJsonGz } from "@core/lib/file-utils";
+import { readJsonGz } from "../lib/file-utils";
 import yargs from "yargs/yargs";
 
 const getPipelineRegistry = (): Record<string, PipelineDefinition> => ({
