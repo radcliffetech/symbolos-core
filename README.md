@@ -56,19 +56,22 @@ pnpm dev -- --pipelineId=conway-game
 
 ## 🧩 License
 
-MIT — see [LICENSE](./LICENSE) for details.
+The **Symbolos Core** engine is licensed under the [MIT License](./LICENSE).
+
+This license applies to the symbolic execution substrate, including:
+- Core types
+- Functors
+- Pipeline execution
+- CLI runner
 
 ---
 
-## 🎯 Design Philosophy
+### 🔐 Dual Licensing Notice
 
-This repository contains the **minimal core** of the Symbolos symbolic execution framework. It is designed to demonstrate the foundational symbolic structures, transformations, and pipeline execution capabilities that underpin the broader system.
+**Domain-specific extensions** of Symbolos — including pipelines, cognitive agents, metaphysical simulation layers, and advanced orchestration — are **not included** in this license.
 
-It intentionally excludes:
-- Domain-specific functors (e.g., musical, narrative, spatial)
-- Frontend or visualization layers
-- Agent-specific identity models
+These components are protected intellectual property and may be:
+- Licensed separately for research or commercial use
+- Reserved for internal or future public distribution
 
-This module is designed to be **embeddable**, **forkable**, and **verifiable** as a symbolic substrate for any higher-order simulation or cognition system.
-
-For a full description of the Symbolos architecture and philosophy, see [about_symbolos.md](./docs/about_symbolos.md).
+For access or licensing inquiries, contact **Jeffrey Radcliffe** at [jeffrey.radcliffe@gmail.com](mailto:jeffrey.radcliffe@gmail.com).
