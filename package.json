@@ -1,18 +1,15 @@
 {
   "name": "@radcliffetech/symbolos-core",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Core symbolic simulation and execution engine for Symbolos",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
   "type": "module",
   "scripts": {
     "build": "tsc",
     "start": "tsx cli/run-world-simulator.ts",
     "dev": "tsx cli/run-world-simulator.ts",
     "test": "vitest run"
-  },
-  "bin": {
-    "symbolos": "./cli/run-world-simulator.ts"
   },
   "keywords": [
     "symbolic",
@@ -35,8 +32,7 @@
     "vitest": "^0.34.6"
   },
   "files": [
-    "core/",
-    "dist/",
+    "src/",
     "README.md",
     "LICENSE"
   ],

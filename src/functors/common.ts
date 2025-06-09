@@ -1,6 +1,6 @@
-import type { Functor, SymbolicLink, SymbolicObject } from '@core/types';
+import type { Functor, SymbolicLink, SymbolicObject } from "@core/types";
 
-import { createSymbolicObject } from '../../core/lib/object-factory';
+import { createSymbolicObject } from "../lib/object-factory";
 
 export const LinkSymbols: Functor<
   {
@@ -12,23 +12,23 @@ export const LinkSymbols: Functor<
   },
   SymbolicLink
 > = {
-  id: 'functor-link-symbols',
-  inputType: 'LinkSymbolsInput',
-  outputType: 'SymbolicLink',
-  method: 'automated',
-  name: 'LinkSymbols',
+  id: "functor-link-symbols",
+  inputType: "LinkSymbolsInput",
+  outputType: "SymbolicLink",
+  method: "automated",
+  name: "LinkSymbols",
   async apply(input) {
     const { from, to, relationship, label, description } = input;
 
-    return createSymbolicObject<SymbolicLink>('SymbolicLink', {
+    return createSymbolicObject<SymbolicLink>("SymbolicLink", {
       id: `link-${from.id}-${to.id}-${relationship}`,
       fromId: from.id,
       toId: to.id,
-      rootId: 'link-root',
+      rootId: "link-root",
       relationship,
       label: label ?? `${from.type} → ${to.type}`,
       description: description ?? `Linked by relationship: ${relationship}`,
-      status: 'active',
+      status: "active",
     });
   },
 

@@ -1,35 +1,38 @@
-import type { Constellation, ConwayCell, Functor } from '@core/types';
+import type { Constellation, ConwayCell, Functor } from "@core/types";
 
-import { createSymbolicObject } from '../../core/lib/object-factory';
+import { createSymbolicObject } from "../lib/object-factory";
 
 interface TransformationInput {
   width: number;
   height: number;
-  seedPattern: 'glider' | 'blinker' | 'beacon' | 'toad';
+  seedPattern: "glider" | "blinker" | "beacon" | "toad";
 }
 
-export const InitializeConwayCells: Functor<TransformationInput, Constellation<ConwayCell>> = {
-  id: 'functor-init-conway-cells',
-  inputType: 'Conway',
-  outputType: 'Constellation<ConwayCell>',
-  method: 'llm-gpt-4o',
-  name: 'InitializeConwayCells',
-  description: 'Generates a SymbolicMorphogen from a prompt using GPT-4.5',
+export const InitializeConwayCells: Functor<
+  TransformationInput,
+  Constellation<ConwayCell>
+> = {
+  id: "functor-init-conway-cells",
+  inputType: "Conway",
+  outputType: "Constellation<ConwayCell>",
+  method: "llm-gpt-4o",
+  name: "InitializeConwayCells",
+  description: "Generates a SymbolicMorphogen from a prompt using GPT-4.5",
   params: [],
-  group: 'SeedGenerators',
+  group: "SeedGenerators",
   async apply(input) {
     const { seedPattern } = input;
 
     const now = new Date().toISOString();
-    const id = 'constellation-conway-t0';
+    const id = "constellation-conway-t0";
     const constellation: Constellation<ConwayCell> = {
       id,
-      type: 'Constellation',
+      type: "Constellation",
 
       createdAt: now,
       updatedAt: now,
-      source: 'openai',
-      status: 'candidate',
+      source: "openai",
+      status: "candidate",
       rootId: id,
       revisionNumber: 1,
       generatedFrom: {
@@ -71,19 +74,20 @@ export const InitializeConwayCells: Functor<TransformationInput, Constellation<C
       ],
     };
 
-    const seed = patterns[seedPattern] || patterns['glider'];
+    const seed = patterns[seedPattern] || patterns["glider"];
 
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const alive = seed.some(([gx, gy]) => gx === x && gy === y);
-        constellation.objects.push(createSymbolicObject<ConwayCell>(
-          'ConwayCell',{
-          position: [x, y],
-          tick: 0,
-          status: alive ? 'alive' : 'dead',
-          rootId: id,
-          id: `cell-${x}-${y}-t0`,
-        }));
+        constellation.objects.push(
+          createSymbolicObject<ConwayCell>("ConwayCell", {
+            position: [x, y],
+            tick: 0,
+            status: alive ? "alive" : "dead",
+            rootId: id,
+            id: `cell-${x}-${y}-t0`,
+          })
+        );
       }
     }
 
@@ -104,25 +108,28 @@ interface TransformationInputStepConway {
   step: number;
 }
 
-export const StepConwayCells: Functor<TransformationInputStepConway, Constellation<ConwayCell>> = {
-  id: 'functor-step-conway-cells',
-  inputType: 'Constellation<ConwayCell>',
-  outputType: 'Constellation<ConwayCell>',
-  method: 'step-conway',
-  name: 'StepConway',
-  description: 'Applies Conway update rules to ConwayCell constellation',
+export const StepConwayCells: Functor<
+  TransformationInputStepConway,
+  Constellation<ConwayCell>
+> = {
+  id: "functor-step-conway-cells",
+  inputType: "Constellation<ConwayCell>",
+  outputType: "Constellation<ConwayCell>",
+  method: "step-conway",
+  name: "StepConway",
+  description: "Applies Conway update rules to ConwayCell constellation",
   params: [],
-  group: 'Simulation',
+  group: "Simulation",
 
   async apply({ constellation, step }) {
     const now = new Date().toISOString();
     const next: Constellation<ConwayCell> = {
-      id:`constellation-conway-t${step}`,
-      type: 'Constellation',
+      id: `constellation-conway-t${step}`,
+      type: "Constellation",
       createdAt: now,
       updatedAt: now,
-      source: 'symbolos',
-      status: 'candidate',
+      source: "symbolos",
+      status: "candidate",
       rootId: constellation.rootId,
       revisionNumber: step,
       generatedFrom: {
@@ -151,7 +158,12 @@ export const StepConwayCells: Functor<TransformationInputStepConway, Constellati
     const [minX, maxX, minY, maxY] = constellation.objects.reduce(
       ([minX, maxX, minY, maxY], cell) => {
         const [x, y] = cell.position;
-        return [Math.min(minX, x), Math.max(maxX, x), Math.min(minY, y), Math.max(maxY, y)];
+        return [
+          Math.min(minX, x),
+          Math.max(maxX, x),
+          Math.min(minY, y),
+          Math.max(maxY, y),
+        ];
       },
       [Infinity, -Infinity, Infinity, -Infinity]
     );
@@ -163,27 +175,29 @@ export const StepConwayCells: Functor<TransformationInputStepConway, Constellati
           const nx = x + dx;
           const ny = y + dy;
           const neighbor = grid.get(`${nx},${ny}`);
-          if (neighbor && neighbor.status === 'alive') {
+          if (neighbor && neighbor.status === "alive") {
             aliveNeighbors++;
           }
         }
 
         const prev = grid.get(`${x},${y}`);
-        const wasAlive = prev?.status === 'alive';
+        const wasAlive = prev?.status === "alive";
         const shouldLive =
           (wasAlive && (aliveNeighbors === 2 || aliveNeighbors === 3)) ||
           (!wasAlive && aliveNeighbors === 3);
 
-        next.objects.push(createSymbolicObject<ConwayCell>('ConwayCell', {
-          position: [x, y],
-          tick: step,
-          status: shouldLive ? 'alive' : 'dead',
-          rootId: constellation.rootId,
-          generatedFrom: {
-            priorId: prev?.id ?? '',
-          },
-          id: `cell-${x}-${y}-t${step}`,
-        }));
+        next.objects.push(
+          createSymbolicObject<ConwayCell>("ConwayCell", {
+            position: [x, y],
+            tick: step,
+            status: shouldLive ? "alive" : "dead",
+            rootId: constellation.rootId,
+            generatedFrom: {
+              priorId: prev?.id ?? "",
+            },
+            id: `cell-${x}-${y}-t${step}`,
+          })
+        );
       }
     }
 

@@ -1,11 +1,10 @@
 import {
   PipelineArgs,
+  conwayGame,
   createSymbolicObject,
   makeNewWorld,
   runWorldPipeline,
-} from "../core";
-
-import { conwayGame } from "../core/pipelines/conway-game-of-life";
+} from "../src";
 
 const pipelineArgs = createSymbolicObject<PipelineArgs>("PipelineArgs", {
   params: {
@@ -22,7 +21,7 @@ const newWorld = await runWorldPipeline({
   pipelineArgs,
   config: {
     verbose: true,
-    outputRoot: "./output",
+    outputRoot: "./sandbox",
     archiveDirName: "conway-archive",
     compress: true,
   },

@@ -63,3 +63,27 @@ All notable changes to this project will be documented in this file.
 
 - Updated Readable and Gzip mocks to use `PassThrough` streams for full compatibility
 - Cleaned up legacy pipeline writing logic
+
+## [0.1.2] — 2025-06-09
+
+📁 Structural & Distribution
+
+- Moved all core code into `src/` directory for clarity and publishability
+- Updated `package.json` to point to `src/index.ts` for `main` and `types`
+- Updated `tsconfig.json` includes to match new `src/` layout
+- Updated `README.md` with accurate file structure
+
+📦 NPM Interface
+
+- Exported `conwayGame` and functors directly via top-level `index.ts`
+- Simplified import paths for consumers of the package
+
+🧪 Tests
+
+- Preserved all test coverage under `src/`, with working CLI and archive persistence
+- Tests now run against new layout with all mocks and pipeline behaviors intact
+
+## [0.1.1] — 2025-06-09
+
+- Refactor repo into src/
+- Tidy and refresh

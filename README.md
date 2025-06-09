@@ -69,8 +69,8 @@ import {
   createSymbolicObject,
   makeNewWorld,
   runWorldPipeline,
-} from "symbolos-core";
-import { conwayGame } from "symbolos-core/pipelines/conway-game-of-life";
+} from "@radcliffetech/symbolos-core";
+import { conwayGame } from "@radcliffetech/symbolos-core/pipelines/conway-game-of-life";
 
 const pipelineArgs = createSymbolicObject<PipelineArgs>("PipelineArgs", {
   params: {

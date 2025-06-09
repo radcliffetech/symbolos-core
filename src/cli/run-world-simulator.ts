@@ -4,9 +4,9 @@ import {
   forkWorld,
   makeNewWorld,
   runWorldPipeline,
-} from "../core";
+} from "../..";
 
-import { SYMBOLOS_VERSION } from "../core/version";
+import { SYMBOLOS_VERSION } from "../../core/version";
 
 import { conwayGame } from "../core/pipelines/conway-game-of-life";
 
