@@ -1,0 +1,12 @@
+# .npmignore
+docs/
+core/cli/
+.vscode/
+sandbox/
+*.log
+
+# Exclude all test files and test folders
+*.test.ts
+*/__tests__/
+test/
+tests/

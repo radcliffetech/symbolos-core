@@ -1,0 +1,35 @@
+{
+  "name": "@radcliffetech/symbolos-core",
+  "version": "0.1.0",
+  "description": "Core symbolic simulation and execution engine for Symbolos",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "start": "tsx core/cli/run-world-simulator.ts",
+    "dev": "tsx core/cli/run-world-simulator.ts",
+    "test": "vitest run"
+  },
+  "bin": {
+    "symbolos": "./cli/run-world-simulator.ts"
+  },
+  "keywords": [
+    "symbolic",
+    "simulation",
+    "pipeline",
+    "framework"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^5.4.1",
+    "yargs": "^18.0.0"
+  },
+  "devDependencies": {
+    "@types/yargs": "^17.0.33",
+    "execa": "^9.6.0",
+    "ts-node": "^10.9.1",
+    "tsx": "^4.7.0",
+    "typescript": "^5.2.2",
+    "vitest": "^0.34.6"
+  }
+}
