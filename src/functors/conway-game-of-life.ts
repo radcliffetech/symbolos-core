@@ -1,4 +1,4 @@
-import type { Constellation, ConwayCell, Functor } from "@core/types";
+import type { Constellation, ConwayCell, Functor } from "../types";
 
 import { createSymbolicObject } from "../lib/object-factory";
 
