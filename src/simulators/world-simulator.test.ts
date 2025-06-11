@@ -1,23 +1,82 @@
+it("records the correct outputId from a returned outputObject", async () => {
+  const world = createNewWorldInstance("test-output-id");
+  const pipelineArgs = createSymbolicObject<PipelineArgs>("PipelineArgs", {
+    params: {},
+  });
+
+  const steps: FunctorStep[] = [
+    {
+      id: "step-choice",
+      purpose: "test output object tracking",
+      functor: {
+        id: "choice-functor",
+        name: "ChoiceFunctor",
+        method: "choose",
+        inputType: "PipelineArgs",
+        outputType: "WorldInstance",
+        apply: async () => {
+          const choice = createSymbolicObject("Choice", {
+            id: "choice-1",
+            rootId: "agent-123",
+            tick: 1,
+          });
+          world.artifacts.set("choice-1", choice);
+          return {
+            world,
+            outputObject: choice,
+            output: [choice],
+          };
+        },
+        describeProvenance: () => ({ reason: "unit-test" }),
+      },
+      tickAdvance: false,
+    },
+  ];
+
+  const result = await runGen2WorldSimulation({
+    world,
+    pipelineArgs,
+    steps,
+    simulatorConfig: { verbose: false },
+  });
+
+  const actions = Array.from(result.artifacts.values()).filter(
+    (o) => o.type === "SymbolicAction"
+  ) as SymbolicAction[];
+
+  expect(actions.length).toBe(1);
+
+  const action = actions[0];
+  expect(action.inputId).toBe("agent-123");
+  expect(action.outputId).toBe("choice-1");
+  expect(action.actorId).toBe("agent-123");
+  expect(action.transformationId).toBe("step-choice");
+  expect(action.instrumentId).toBe("choice-functor");
+  expect(action.purpose).toBe("test output object tracking");
+  expect(action.tick).toBe(0);
+});
+
 import type {
   FunctorStep,
   PipelineArgs,
   PipelineRun,
+  SymbolicAction,
   SymbolicObject,
   WorldFrame,
+  WorldSimulatorConfig,
 } from "../types";
 import {
-  createWorldFromFrame,
-  makeNewWorld,
-  runWorldPipeline,
+  createNewWorldInstance,
+  createWorldInstanceFromFrame,
+  runGen2WorldSimulation,
 } from "./world-simulator";
 import { describe, expect, it } from "vitest";
 
-import { al } from "vitest/dist/reporters-5f784f42";
 import { createSymbolicObject } from "../lib/object-factory";
 import { forkWorld } from "./world-simulator";
 
 it("forks a world and retains aonst pipelineArgs: Prtifacts and context", () => {
-  const original = makeNewWorld("fire-spread");
+  const original = createNewWorldInstance("fire-spread");
   const obj: SymbolicObject = {
     id: "x",
     type: "Thing",
@@ -37,7 +96,7 @@ it("forks a world and retains aonst pipelineArgs: Prtifacts and context", () => 
 
 describe("world-simulator", () => {
   it("creates a new world with correct structure", () => {
-    const world = makeNewWorld("test-pipeline");
+    const world = createNewWorldInstance("test-pipeline");
     expect(world.tick).toBe(0);
     expect(world.pipelineId).toBe("test-pipeline");
     expect(world.artifacts).toBeInstanceOf(Map);
@@ -55,7 +114,7 @@ describe("world-simulator", () => {
       status: "active",
       members: [createSymbolicObject("MockObject", { id: "x", label: "X" })],
     };
-    const world = createWorldFromFrame({
+    const world = createWorldInstanceFromFrame({
       frame: mockFrame,
       pipelineId: mockFrame.pipelineId,
       runId: mockFrame.runId,
@@ -66,7 +125,7 @@ describe("world-simulator", () => {
   });
 
   it("runs a pipeline and stores output in artifacts", async () => {
-    const world = makeNewWorld("test");
+    const world = createNewWorldInstance("test");
     const pipelineArgs = createSymbolicObject<PipelineArgs>("PipelineArgs", {
       params: {},
     });
@@ -91,11 +150,11 @@ describe("world-simulator", () => {
       },
     ];
 
-    const result = await runWorldPipeline({
+    const result = await runGen2WorldSimulation({
       world,
       pipelineArgs,
       steps,
-      config: { verbose: false },
+      simulatorConfig: { verbose: false } as WorldSimulatorConfig,
     });
 
     expect(result.tick).toBeGreaterThan(0);
@@ -104,7 +163,7 @@ describe("world-simulator", () => {
 });
 
 it("stores step output in context under expected key", async () => {
-  const world = makeNewWorld("test");
+  const world = createNewWorldInstance("test");
 
   const pipelineArgs = createSymbolicObject<PipelineArgs>("PipelineArgs", {
     params: {},
@@ -132,11 +191,11 @@ it("stores step output in context under expected key", async () => {
     },
   ];
 
-  const result = await runWorldPipeline({
+  const result = await runGen2WorldSimulation({
     world,
     pipelineArgs,
     steps,
-    config: { verbose: false },
+    simulatorConfig: { verbose: false },
   });
   expect(result.context.Frame_t0).toBeDefined();
   expect(result.context.Frame_t0).toMatchObject({ id: "mock-result" });
@@ -158,7 +217,7 @@ it("initializes tick, step, and artifacts correctly from frame", () => {
     ],
   };
 
-  const world = createWorldFromFrame({
+  const world = createWorldInstanceFromFrame({
     frame: mockFrame,
     pipelineId: mockFrame.pipelineId,
     runId: mockFrame.runId,
@@ -187,7 +246,7 @@ it("forks a world from a frame and retains pipelineId and forkedFromRunId", () =
     ],
   };
 
-  const baseWorld = createWorldFromFrame({
+  const baseWorld = createWorldInstanceFromFrame({
     frame: mockFrame,
     pipelineId: mockFrame.pipelineId,
     runId: mockFrame.runId,
@@ -213,7 +272,7 @@ it("runs a different pipeline after forking and generates a distinct PipelineRun
     createdAt: new Date().toISOString(),
     members: [createSymbolicObject("BaseObject", { id: "x" })],
   };
-  const baseWorld = createWorldFromFrame({
+  const baseWorld = createWorldInstanceFromFrame({
     frame: baseFrame,
     pipelineId: baseFrame.pipelineId,
     runId: baseFrame.runId,
@@ -248,11 +307,11 @@ it("runs a different pipeline after forking and generates a distinct PipelineRun
     },
   ];
 
-  const result = await runWorldPipeline({
+  const result = await runGen2WorldSimulation({
     world: forked,
     pipelineArgs,
     steps,
-    config: { verbose: false },
+    simulatorConfig: { verbose: false },
   });
 
   const pipelineRuns = Array.from(result.artifacts.values()).filter(
@@ -280,7 +339,7 @@ it("creates multiple forks from a base world and runs separate pipelines", async
     ],
   };
 
-  const baseWorld = createWorldFromFrame({
+  const baseWorld = createWorldInstanceFromFrame({
     frame: baseFrame,
     pipelineId: baseFrame.pipelineId,
     runId: baseFrame.runId,
@@ -315,11 +374,11 @@ it("creates multiple forks from a base world and runs separate pipelines", async
         },
       ];
 
-      const result = await runWorldPipeline({
+      const result = await runGen2WorldSimulation({
         world: forked,
         pipelineArgs,
         steps,
-        config: { verbose: false },
+        simulatorConfig: { verbose: false },
       });
 
       return result;

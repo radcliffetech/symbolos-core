@@ -1,9 +1,9 @@
 import {
   PipelineArgs,
   conwayGame,
+  createNewWorldInstance,
   createSymbolicObject,
-  makeNewWorld,
-  runWorldPipeline,
+  runGen2WorldSimulation,
 } from "../src";
 
 const pipelineArgs = createSymbolicObject<PipelineArgs>("PipelineArgs", {
@@ -15,15 +15,19 @@ const pipelineArgs = createSymbolicObject<PipelineArgs>("PipelineArgs", {
   },
 });
 
-const newWorld = await runWorldPipeline({
-  world: makeNewWorld("poc-conway"),
+const newWorld = await runGen2WorldSimulation({
+  world: createNewWorldInstance("poc-conway"),
   steps: conwayGame.getSteps(pipelineArgs),
   pipelineArgs,
-  config: {
+  simulatorConfig: {
     verbose: true,
-    outputRoot: "./sandbox",
-    archiveDirName: "conway-archive",
-    compress: true,
+  },
+  frameHandler: (world) => {
+    // Optionally handle each frame, e.g., log or modify the world
+    console.log(
+      `🔄 Frame at tick ${world.tick} with ${world.artifacts.size} artifacts.`
+    );
+    return world;
   },
 });
 console.log(`✅ Simulation completed. Final tick: ${newWorld.tick}`);

@@ -8,13 +8,10 @@ import type {
   WorldInstance,
   WorldSimulatorConfig,
 } from "../types";
-import { storeWorldArchive, storeWorldFrame } from "../lib/world-utils";
 
 import chalk from "chalk";
 import { createSymbolicObject } from "../lib/object-factory";
 import crypto from "node:crypto";
-import fs from "fs/promises";
-import path from "path";
 
 function createPipelineRunObject(
   pipelineId: string,
@@ -45,17 +42,12 @@ interface RecordSymbolicActionParams {
   purpose: string;
   tick: number;
   stepPrefix?: string;
-  chainDir?: string;
-  storeFiles?: boolean;
+  outputObject?: SymbolicObject | null;
 }
 
 function addToArtifacts(context: Record<string, any>, obj: any) {
   if (!obj?.id) return;
   context._artifactsById.set(obj.id, obj);
-}
-
-function getArtifacts(context: Record<string, any>): any[] {
-  return Array.from(context._artifactsById.values());
 }
 
 function flattenSymbolicObjects(obj: any): SymbolicObject[] {
@@ -87,12 +79,14 @@ async function executeCycleStep(
   id: string,
   context: Record<string, any>,
   verbose: boolean,
-  simulationTick: number,
-  params?: Record<string, any>
-): Promise<{ output: any[]; newId: string }> {
+  simulationTick: number
+): Promise<{
+  output: any[];
+  newId: string;
+  outputObject: SymbolicObject | null;
+}> {
   const { functor, resolveInput } = step;
 
-  // Optimize input mapping: avoid full clone and skip unnecessary await
   let mappedInput: any;
   if (resolveInput) {
     const result = resolveInput(input, context);
@@ -103,11 +97,11 @@ async function executeCycleStep(
   const stepLabel = `🔁 [${simulationTick}] Step ${index + 1}: ${
     functor.inputType
   } ➝ ${functor.outputType}`;
-  console.log(chalk.cyan.bold(`[runPipeline] ${stepLabel}`));
   if (verbose) {
+    console.log(chalk.cyan.bold(`[symbolos] ${stepLabel}`));
     console.log(
-      chalk.yellow(
-        `[runPipeline] Mapped input for step ${index + 1}: ${step.id}`,
+      chalk.blue(
+        `[symbolos] Mapped input for step ${index + 1}: ${step.id}`,
         mappedInput
       )
     );
@@ -115,26 +109,29 @@ async function executeCycleStep(
   const inputItems = Array.isArray(mappedInput) ? mappedInput : [mappedInput];
   if (verbose) {
     console.log(
-      chalk.gray(
-        `[runPipeline] Number of input items for step ${index + 1}: ${
+      chalk.blue(
+        `[symbolos] Number of input items for step ${index + 1}: ${
           inputItems.length
         }`
       )
     );
   }
   let output: SymbolicObject[] = [];
-  for (const [itemIndex, item] of inputItems.entries()) {
+  let outputObject: SymbolicObject | null = null;
+  for (const [itemIndex, item] of Object.entries(inputItems)) {
     const fullInput = { ...item };
     if (verbose) {
       console.log(
         chalk.yellow(
-          `[runPipeline] Applying functor ${functor.method} to input item ${
+          `\n[symbolos] Applying functor ${functor.method} to input item ${
             itemIndex + 1
-          }:`
+          }:\n`
         )
       );
     }
-    const functorOutput = await functor.apply(fullInput, context);
+    const functorResult = await functor.apply(fullInput, context);
+    const outputWorld = functorResult?.world ?? functorResult;
+    outputObject = functorResult?.outputObject ?? null;
     const transformation: Record<string, any> = {
       id: `tx-${crypto.randomUUID()}`,
       type: "Transformation",
@@ -142,22 +139,22 @@ async function executeCycleStep(
       createdAt: new Date().toISOString(),
       tick: simulationTick,
       inputId: fullInput.id,
-      outputId: Array.isArray(functorOutput)
-        ? functorOutput.map((o: any) => o?.id).filter(Boolean)
-        : functorOutput?.id,
+      outputId: Array.isArray(outputWorld)
+        ? outputWorld.map((o: any) => o?.id).filter(Boolean)
+        : outputWorld?.id,
     };
 
     if (verbose) {
       console.log(
-        chalk.gray(
-          `[runPipeline] Functor ${functor.method} completed for item ${
+        chalk.greenBright(
+          `[symbolos] Functor ${functor.method} completed for item ${
             itemIndex + 1
           }.`
         )
       );
     }
 
-    const flattened = flattenSymbolicObjects(functorOutput);
+    const flattened = flattenSymbolicObjects(outputWorld);
     for (const obj of flattened) {
       if (obj && typeof obj === "object" && !("tick" in obj)) {
         obj.tick = simulationTick;
@@ -173,28 +170,44 @@ async function executeCycleStep(
     output.push(...flattened);
   }
 
+  if (output.length === 0 && outputObject) {
+    output.push(outputObject);
+  }
+
   if (output.length === 0) {
     if (verbose)
       console.log(
         chalk.red(
-          `[runPipeline] ⚠️ No output returned by step ${index + 1}: ${step.id}`
+          `[symbolos] ⚠️ No output returned by step ${index + 1}: ${step.id}`
         )
       );
   } else {
     if (verbose) {
+      // group the output by type and  count them
+      const typeCounts: Record<string, number> = {};
+      for (const obj of output) {
+        if (obj.type) {
+          typeCounts[obj.type] = (typeCounts[obj.type] || 0) + 1;
+        }
+      }
+      console.log(
+        chalk.green(`\n[symbolos] ✅ Step Output: ${output.length} item(s)`)
+      );
       console.log(
         chalk.green(
-          `\n[runPipeline] ✅ Step Output: ${
-            output.length > 1
-              ? output.map((o) => `${o.type} (${o.id})`).join(", ")
-              : `${output[0].type} (${output[0].id})`
-          }\n`
+          `[symbolos] Output types: ${Object.entries(typeCounts)
+            .map(([type, count]) => `${type}: ${count}`)
+            .join(", ")}\n`
         )
       );
     }
   }
 
-  return { output, newId: output.length === 1 ? output[0].id : id };
+  return {
+    output,
+    newId: output.length === 1 ? output[0].id : id,
+    outputObject,
+  };
 }
 
 const recordSymbolicAction = async ({
@@ -204,43 +217,41 @@ const recordSymbolicAction = async ({
   instrumentId,
   purpose,
   tick,
+  stepPrefix,
+  outputObject,
 }: RecordSymbolicActionParams): Promise<void> => {
-  const action: SymbolicAction = {
+  const action = createSymbolicObject<SymbolicAction>("SymbolicAction", {
     id: `action-${crypto.randomUUID()}`,
-    type: "SymbolicAction",
     label: `${entry.type} Action`,
-
     transformationId,
-    actorId: context.subjectiveFrame?.id ?? "unknown-actor",
+    actorId:
+      outputObject?.rootId ??
+      context.subjectiveFrame?.id ??
+      entry.rootId ??
+      "unknown-actor",
     contextId: context.contextualFrame?.id ?? "unknown-context",
-    criteriaId: context.selectionCriteria?.id ?? "unknown-criteria",
     instrumentId: instrumentId ?? context.instrumentId ?? "default-instrument", // Use provided instrumentId or default
     purpose: purpose ?? context.purpose ?? "default-purpose", // Use provided purpose or default
-    inputId: entry.id,
-    outputId: entry.id,
-
+    inputId: outputObject?.rootId ?? entry.rootId ?? entry.id,
+    outputId: outputObject?.id ?? entry.id,
     rootId: "action-root", // all actions are linked to a root action
     status: "completed",
-
-    timestamp: new Date().toISOString(),
     tick,
-    createdAt: new Date().toISOString(),
-  };
+  });
 
-  // Add the action to context._artifacts, replacing if already present
   addToArtifacts(context, action);
 };
 
-interface CreateWorldFromFrameParams {
+interface createWorldInstanceFromFrameParams {
   frame: WorldFrame;
   pipelineId: string;
   runId: string;
 }
-export function createWorldFromFrame({
+export function createWorldInstanceFromFrame({
   frame,
   pipelineId,
   runId,
-}: CreateWorldFromFrameParams): WorldInstance {
+}: createWorldInstanceFromFrameParams): WorldInstance {
   const artifacts = new Map<string, SymbolicObject>();
   for (const obj of frame.members) {
     artifacts.set(obj.id, obj);
@@ -255,47 +266,45 @@ export function createWorldFromFrame({
   };
 }
 
-export function makeNewWorld(pipelineId: string): WorldInstance {
+export function createNewWorldInstance(
+  pipelineId: string,
+  runId?: string
+): WorldInstance {
   return {
     tick: 0,
     step: 0,
-    runId: new Date().toISOString().replace(/[:.]/g, "-"),
+    runId: runId || new Date().toISOString().replace(/[:.]/g, "-"),
     pipelineId,
     artifacts: new Map<string, SymbolicObject>(),
     context: {},
   };
 }
 
-/**
- * Run a world pipeline using a SymbolicWorld as the stateful model.
- * @param world - The SymbolicWorld instance (mutable, stateful)
- * @param pipelineArgs - PipelineArgs object (contains input parameters and config)
- * @param steps - Array of FunctorStep pipeline steps
- * @param config - Optional run config
- * @returns The mutated SymbolicWorld after running all steps
- */
-export async function runWorldPipeline({
+export async function runGen2WorldSimulation({
   world,
   pipelineArgs,
   steps,
-  config,
+  simulatorConfig,
+  frameHandler = () => {},
 }: {
   world: WorldInstance;
   pipelineArgs: PipelineArgs;
   steps: FunctorStep[];
-  config: WorldSimulatorConfig;
-}) {
-  const { verbose } = config;
+  simulatorConfig: WorldSimulatorConfig;
+  frameHandler?: (world: WorldInstance) => void; // on each new world frame
+}): Promise<WorldInstance> {
+  const { verbose } = simulatorConfig;
 
   const runId = world.runId;
   const pipelineId = world.pipelineId;
 
   console.log(
-    chalk.blueBright(`🔧 Running pipeline: ${pipelineId} with runId: ${runId}`)
+    chalk.blueBright(
+      `[symbolos] 🔧 Running pipeline: ${pipelineId} with runId: ${runId}`
+    )
   );
-  console.log(config);
 
-  let input: any = pipelineArgs;
+  let input: any = pipelineArgs; // initial input to the pipeline
   let id = pipelineId;
 
   world.context.pipelineId = pipelineId;
@@ -304,20 +313,19 @@ export async function runWorldPipeline({
 
   addToArtifacts(world.context, pipelineArgs);
 
-  for (const [index, step] of steps.entries()) {
+  for (const [index, step] of Object.entries(steps)) {
     if (step.tickAdvance !== false) {
       world.tick += 1;
     }
 
-    const { output, newId } = await executeCycleStep(
+    const { output, newId, outputObject } = await executeCycleStep(
       step,
-      index,
+      Number(index),
       input,
       id,
       world.context,
       verbose ?? false,
-      world.tick,
-      pipelineArgs.params
+      world.tick
     );
 
     input = output;
@@ -328,36 +336,22 @@ export async function runWorldPipeline({
         output.length === 1 ? output[0] : output;
     }
 
-    // --- Collect output entries for later batched store/write ---
     if (!world.context._batchedEntries) world.context._batchedEntries = [];
     for (const entry of output) {
       world.context._batchedEntries.push({
         entry,
-        transformationId: id,
+        transformationId: step.id,
         instrumentId: step.functor.id,
         purpose: step.purpose,
         tick: world.tick,
-        chainDir: `sandbox/${pipelineId}/${runId}`,
-        stepPrefix: String(index + 1).padStart(3, "0"),
+        stepPrefix: String(Number(index) + 1).padStart(3, "0"),
+        outputObject,
       });
     }
 
-    // Adjust storeWorldFrame call to pass outputRoot, archiveDirName, compress from config
-    await storeWorldFrame({
-      context: world.context,
-      pipelineId,
-      runId,
-      config,
-      tick: world.tick,
-      step: index,
-      getArtifacts,
-    });
+    world.context._lastOutputObject = outputObject;
 
-    if (verbose) {
-      console.log(
-        chalk.gray(`[runWorldPipeline] Saved frame t${world.tick}-s${index}`)
-      );
-    }
+    await frameHandler(world);
   }
 
   if (
@@ -372,26 +366,15 @@ export async function runWorldPipeline({
         instrumentId: batched.instrumentId,
         purpose: batched.purpose,
         context: world.context,
-        chainDir: batched.chainDir,
         stepPrefix: batched.stepPrefix,
         tick: batched.tick,
+        outputObject: batched.outputObject,
       });
     }
+
+    // clear the batched entries after processing
+    world.context._batchedEntries = [];
   }
-
-  // Adjust storeWorldArchive call to pass outputRoot, archiveDirName, compress from config
-  const { filePath: archivePath } = await storeWorldArchive({
-    context: world.context,
-    pipelineId,
-    runId,
-    config,
-    getArtifacts,
-  });
-
-  const baseDir = config.outputRoot ?? "sandbox/worlds";
-  const frontendPath = path.join(baseDir, `${pipelineId}.world.json.gz`);
-  await fs.mkdir(baseDir, { recursive: true });
-  await fs.copyFile(archivePath, frontendPath);
 
   const pipelineRun = createPipelineRunObject(
     pipelineId,

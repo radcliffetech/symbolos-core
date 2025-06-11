@@ -1,24 +1,25 @@
-import type { BaseSymbolicObject } from './base';
+import type { BaseSymbolicObject } from "./base";
 
 /** General symbolic object (alias for base interface) */
 export type SymbolicObject = BaseSymbolicObject;
 
 /** A grouped collection of symbolic objects with a shared meaning or context */
-export type Constellation<T extends SymbolicObject = SymbolicObject> = BaseSymbolicObject & {
-  type: 'Constellation';
-  /** The contained symbolic objects */
-  objects: T[];
-  /** Optional timestamp when this constellation was generated */
-  generatedFrom?: {
-    timestamp: string;
+export type Constellation<T extends SymbolicObject = SymbolicObject> =
+  BaseSymbolicObject & {
+    type: "Constellation";
+    /** The contained symbolic objects */
+    objects: T[];
+    /** Optional timestamp when this constellation was generated */
+    generatedFrom?: {
+      timestamp: string;
+    };
+    /** Optional tick this constellation is associated with */
+    tick?: number;
   };
-  /** Optional tick this constellation is associated with */
-  tick?: number;
-};
 
 /** Describes a transformation from one symbolic object to another */
 export type Transformation = BaseSymbolicObject & {
-  type: 'Transformation';
+  type: "Transformation";
   /** ID of the input object */
   inputId: string;
   /** Symbolic type of the input */
@@ -32,14 +33,14 @@ export type Transformation = BaseSymbolicObject & {
   /** Arbitrary transformation metadata */
   metadata?: Record<string, any>;
   /** Status of the transformation */
-  status: 'pending' | 'complete' | 'error';
+  status: "pending" | "complete" | "error";
   /** Optional notes about the transformation */
   notes?: string;
 };
 
 /** A symbolic act performed by an agent using a transformation in a context */
 export type SymbolicAction = BaseSymbolicObject & {
-  type: 'SymbolicAction';
+  type: "SymbolicAction";
   /** ID of the acting agent */
   actorId: string;
   /** ID of the transformation applied */
@@ -52,8 +53,6 @@ export type SymbolicAction = BaseSymbolicObject & {
   outputId: string;
   /** ID of the context in which the action occurs */
   contextId: string;
-  /** ID of the criteria or rubric used */
-  criteriaId?: string;
   /** Purpose or intent of the action */
   purpose?: string;
   /** ISO timestamp when the action occurred */
@@ -63,7 +62,7 @@ export type SymbolicAction = BaseSymbolicObject & {
 };
 
 export type WorldArchive = BaseSymbolicObject & {
-  type: 'WorldArchive';
+  type: "WorldArchive";
   name: string; // e.g. "World Archive - 2023-10-01"
   label: string; // e.g. "World Archive - 2023-10-01"
 
@@ -72,4 +71,3 @@ export type WorldArchive = BaseSymbolicObject & {
   members: BaseSymbolicObject[]; // All included objects, for easy retrieval
   filePath?: string; // Path to the .world.json.gz archive
 };
-

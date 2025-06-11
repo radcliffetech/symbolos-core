@@ -13,6 +13,20 @@ export interface PipelineDefinition {
     defaults?: Record<string, any>;
   };
   getSteps: (args: PipelineArgs) => FunctorStep[];
+  version?: number;
+}
+
+export interface WorldPipelineDefinition {
+  id: string;
+  label: string;
+  description: string;
+  args: {
+    required: string[];
+    optional?: string[];
+    defaults?: Record<string, any>;
+  };
+  getSteps: (args: PipelineArgs) => WorldFunctorStep[];
+  version: 3;
 }
 
 /**
@@ -26,6 +40,7 @@ export type WorldInstance = {
   pipelineId: string;
   artifacts: Map<string, BaseSymbolicObject>;
   context: Record<string, any>;
+  metadata?: Record<string, any>;
 };
 
 /**
@@ -40,4 +55,38 @@ export type WorldFrame = BaseSymbolicObject & {
   memberIds?: string[];
   members: BaseSymbolicObject[];
   metadata?: Record<string, any>;
+};
+
+export interface WorldFunctor {
+  id: string;
+  name: string;
+  description?: string;
+  method: string;
+  group?: string;
+  inputType: "WorldInstance";
+  outputType: "WorldInstance";
+  apply: (input: { world: WorldInstance }) => Promise<{
+    world: WorldInstance;
+    outputObject?: BaseSymbolicObject;
+    output?: BaseSymbolicObject[];
+  }>;
+  describeProvenance?: (
+    input: { world: WorldInstance },
+    output: WorldInstance
+  ) => Record<string, any>;
+  requiresTickAdvance?: boolean;
+}
+export type WorldFunctorStep = {
+  id: string;
+  functor: WorldFunctor;
+  purpose: string;
+  description?: string;
+  role?: string;
+  resolveInput?: (
+    input: WorldInstance,
+    context: Record<string, any>
+  ) => Promise<{ world: WorldInstance }>;
+  storeOutputAs?: string;
+  tickAdvance?: boolean;
+  tickType?: string;
 };

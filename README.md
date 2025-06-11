@@ -67,8 +67,8 @@ Use `pnpm dev` to launch the CLI world simulator interactively.
 import {
   PipelineArgs,
   createSymbolicObject,
-  makeNewWorld,
-  runWorldPipeline,
+  createNewWorldInstance,
+  runGen2WorldSimulation,
 } from "@radcliffetech/symbolos-core";
 import { conwayGame } from "@radcliffetech/symbolos-core/pipelines/conway-game-of-life";
 
@@ -81,8 +81,8 @@ const pipelineArgs = createSymbolicObject<PipelineArgs>("PipelineArgs", {
   },
 });
 
-const newWorld = await runWorldPipeline({
-  world: makeNewWorld("poc-conway"),
+const newWorld = await runGen2WorldSimulation({
+  world: createNewWorldInstance("poc-conway"),
   steps: conwayGame.getSteps(pipelineArgs),
   pipelineArgs,
   config: {

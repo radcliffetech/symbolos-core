@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { storeWorldArchive, storeWorldFrame } from "./world-utils";
 
 import { PassThrough } from "stream";

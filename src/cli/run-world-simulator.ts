@@ -1,8 +1,9 @@
 import {
   type WorldSimulatorConfig,
-  createWorldFromFrame,
+  createWorldInstanceFromFrame,
   forkWorld,
-  makeNewWorld,
+  createNewWorldInstance,
+  runGen2WorldSimulation,
   runWorldPipeline,
 } from "../..";
 
@@ -15,6 +16,7 @@ import {
   PipelineArgs,
   SymbolicObject,
   PipelineDefinition,
+  WorldFunctorStep,
 } from "../types";
 import chalk from "chalk";
 import { hideBin } from "yargs/helpers";
@@ -97,7 +99,7 @@ async function main() {
   if (framePath) {
     console.log(chalk.cyan(`📂 Resuming world from: ${framePath}`));
     const frame = await readJsonGz(framePath);
-    world = createWorldFromFrame({ frame, pipelineId, runId });
+    world = createWorldInstanceFromFrame({ frame, pipelineId, runId });
     pipelineId = world.pipelineId;
     console.log(
       chalk.green(`✅ World restored at tick ${world.tick}, step ${world.step}`)
@@ -107,7 +109,7 @@ async function main() {
       chalk.cyan(`📂 Forking world from archive: ${args.fromArchive}`)
     );
     const archive = await readJsonGz(args.fromArchive);
-    const baseWorld = createWorldFromFrame({
+    const baseWorld = createWorldInstanceFromFrame({
       frame: archive,
       pipelineId: archive.pipelineId || defaultPipelineId,
       runId: archive.runId || crypto.randomUUID(),
@@ -121,7 +123,7 @@ async function main() {
     console.log(
       chalk.yellow(`🌱 Starting new world for pipeline: ${pipelineId}`)
     );
-    world = makeNewWorld(pipelineId);
+    world = createNewWorldInstance(pipelineId);
     console.log(
       chalk.green(`✅ New world initialized with runId: ${world.runId}`)
     );
@@ -159,12 +161,21 @@ async function main() {
 
   console.log(chalk.blueBright(`🚀 Running simulation...`));
 
-  const result = await runWorldPipeline({
-    world,
-    pipelineArgs,
-    steps: pipelineDefinition.getSteps(pipelineArgs),
-    config: pipelineConfig,
-  });
+  console.log(chalk.gray(`🧠 Using simulator version: ${pipelineDefinition.version}`));
+
+  const result = pipelineDefinition.version === 3
+    ? await runWorldPipeline({
+        world,
+        pipelineArgs,
+        steps: pipelineDefinition.getSteps(pipelineArgs) as WorldFunctorStep[],
+        simulatorConfig: pipelineConfig,
+      })
+    : await runGen2WorldSimulation({
+        world,
+        pipelineArgs,
+        steps: pipelineDefinition.getSteps(pipelineArgs),
+        simulatorConfig: pipelineConfig,
+      });
 
   if (!result || typeof result.tick !== "number") {
     console.error(
