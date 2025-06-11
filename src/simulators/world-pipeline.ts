@@ -150,7 +150,6 @@ export async function runWorldPipeline({
   world: WorldInstance;
   steps: WorldFunctorStep[];
   pipelineArgs: PipelineArgs;
-  simulatorConfig: WorldSimulatorConfig;
   frameHandler?: (world: WorldInstance) => void;
 }): Promise<WorldInstance> {
   if (!world.context) world.context = {};

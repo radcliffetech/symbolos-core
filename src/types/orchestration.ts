@@ -48,3 +48,12 @@ export type WorldSimulatorConfig = {
   archiveDirName?: string;
   compress?: boolean;
 };
+
+
+export type SymbolicWorldStore = {
+  getByType<T extends SymbolicObject>(type: string): T[];
+  getById<T extends SymbolicObject>(id: string): T | undefined;
+  getByIds<T extends SymbolicObject>(ids: string[]): T[];
+  getLatestOfType<T extends SymbolicObject>(type: string): T | undefined;
+  getAll(): SymbolicObject[];
+};

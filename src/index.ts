@@ -8,3 +8,13 @@ export { storeWorldArchive } from "./lib/world-utils";
 export type { WorldStore } from "./store/world-store";
 export { createRedisWorldStore } from "./lib/redis-world-store";
 export { getRedisClient } from "./lib/redis-utils";
+export {
+  toWorldFrame,
+  addToWorld,
+  removeFromWorld,
+  getFromWorldById,
+  getFromWorldByType,
+  getFromWorldByIds,
+  hasType,
+} from "./lib/world-actions";
+export { getSymbolicWorldStore } from "./store/symbolic-world-store";

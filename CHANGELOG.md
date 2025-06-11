@@ -4,6 +4,40 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.2.0] — 2025-06-11
+
+🧠 Gen3 Pipeline Execution
+
+- Introduced `WorldFunctor` interface for world-in/world-out transformations
+- Added `runWorldPipeline` simulator for Gen3 symbolic pipelines
+- Introduced `WorldPipelineDefinition` and `WorldFunctorStep` types
+- Clean separation between Gen2 (object) and Gen3 (world) pipeline execution
+
+🧾 Symbolic Action Logging
+
+- Symbolic actions now record `actorId`, `inputId`, `outputId`, and `purpose` from `outputObject`
+- Added support for causal provenance using `rootId` from symbolic output
+- Simulator now dynamically wraps `outputObject` and `output[]` from functors
+
+🧪 Testing & Safety
+
+- Added comprehensive test coverage for Gen3 pipelines, functors, and action logging
+- Eliminated Gen2-style flattening in Gen3 pipeline execution
+- Simulator now guards against missing `context` or `_artifactsById` bindings
+
+🔧 CLI & Integration
+
+- CLI now auto-selects simulator version based on `pipelineDefinition.version`
+- Added CLI and simulator logging for simulator version
+
+🧼 Type & Structure Cleanup
+
+- Updated `WorldFunctor` return type to require `{ world, outputObject?, output? }`
+- Removed obsolete `criteriaId` and Gen2 functor assumptions
+- Cleaned up redundant logic around flattening and artifact promotion
+
+---
+
 ## [0.1.0] — 2025-06-08
 
 ✅ Initial public release of `@radcliffetech/symbolos-core`.

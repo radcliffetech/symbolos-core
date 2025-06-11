@@ -16,24 +16,14 @@ export interface PipelineDefinition {
   version?: number;
 }
 
-export interface WorldPipelineDefinition {
-  id: string;
-  label: string;
-  description: string;
-  args: {
-    required: string[];
-    optional?: string[];
-    defaults?: Record<string, any>;
-  };
-  getSteps: (args: PipelineArgs) => WorldFunctorStep[];
-  version: 3;
-}
+
 
 /**
  * Represents the live, tick-by-tick state of a symbolic world.
  * Not stored as a symbolic object — used during execution only.
  */
 export type WorldInstance = {
+  id?: string;
   tick: number;
   step: number;
   runId: string;
@@ -76,11 +66,12 @@ export interface WorldFunctor {
   ) => Record<string, any>;
   requiresTickAdvance?: boolean;
 }
+
 export type WorldFunctorStep = {
   id: string;
+  description?: string;
   functor: WorldFunctor;
   purpose: string;
-  description?: string;
   role?: string;
   resolveInput?: (
     input: WorldInstance,
@@ -90,3 +81,11 @@ export type WorldFunctorStep = {
   tickAdvance?: boolean;
   tickType?: string;
 };
+
+export interface WorldPipelineDefinition {
+  id: string;
+  label: string;
+  description: string;
+  steps: WorldFunctorStep[];
+  version: 3;
+}

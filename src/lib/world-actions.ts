@@ -1,119 +1,10 @@
 import {
-  createSymbolicObject,
   type SymbolicObject,
-  type WorldArchive,
   type WorldFrame,
   type WorldInstance,
-} from "../index";
-
+} from "../types";
+import { createSymbolicObject } from "./object-factory";
 import chalk from "chalk";
-
-const summarizeWorldFrame = (world: WorldFrame, members: SymbolicObject[]) => {
-  const total = members.length;
-  const typeCounts = members.reduce(
-    (acc: Record<string, number>, item: any) => {
-      const type = item.type ?? "Unknown";
-      acc[type] = (acc[type] || 0) + 1;
-      return acc;
-    },
-    {}
-  );
-  console.log(
-    chalk.bold(`\n🌍 Symbolic World Summary: ${chalk.cyan(world.id)}`)
-  );
-  console.log(`📝 Description: ${world.description || "—"}`);
-  console.log(`🆔 ID: ${world.id}`);
-  console.log(`📅 Created: ${world.createdAt}`);
-  console.log(`📦 Members: ${total}`);
-  console.log("\n📊 Type Breakdown:");
-  Object.entries(typeCounts)
-    .sort(([, a], [, b]) => b - a)
-    .forEach(([type, count]) => {
-      console.log(`  - ${chalk.green(type)}: ${count}`);
-    });
-};
-
-export const summaryHelper = {
-  WorldFrame: summarizeWorldFrame,
-  WorldArchive: (world: WorldArchive) => {
-    console.log(
-      chalk.bold(`\n🌍 Symbolic World Archive Summary: ${chalk.cyan(world.id)}`)
-    );
-    console.log(`📝 Description: ${world.description || "—"}`);
-    console.log(`🆔 ID: ${world.id}`);
-    console.log(`📅 Created: ${world.createdAt}`);
-    console.log(`📦 Members: ${world.memberIds?.length || 0}`);
-    console.log(`📂 File Path: ${world.filePath || "—"}`);
-    console.log("");
-  },
-  WorldInstance: (world: WorldInstance) => {
-    console.log(
-      chalk.bold(
-        `\n🌍 Symbolic World Instance Summary: ${chalk.cyan(world.runId)}`
-      )
-    );
-    console.log(`📝 Pipeline ID: ${chalk.cyan(world.pipelineId)}`);
-    console.log(`🆔 Run ID: ${chalk.cyan(world.runId)}`);
-    console.log(`⏱️ Tick: ${chalk.cyan(world.tick)}`);
-    console.log(`🔢 Step: ${chalk.cyan(world.step)}`);
-    console.log(
-      `📦 Artifacts: ${chalk.cyan(world.artifacts.size.toLocaleString())}`
-    );
-    console.log(
-      `📅 Context Keys: ${chalk.cyan(Object.keys(world.context).length)}`
-    );
-    console.log(
-      `🔗 Context Keys: ${chalk.cyan(Object.keys(world.context).join(", "))}`
-    );
-    console.log("");
-    // get a count of artifacts by type
-    const typeCounts = Array.from(world.artifacts.values()).reduce(
-      (acc: Record<string, number>, artifact: any) => {
-        const type = artifact.type ?? "Unknown";
-        acc[type] = (acc[type] || 0) + 1;
-        return acc;
-      },
-      {}
-    );
-    console.log("📊 Artifact Type Breakdown:");
-    Object.entries(typeCounts)
-      .sort(([, a], [, b]) => b - a)
-      .forEach(([type, count]) => {
-        console.log(`  - ${chalk.cyan(type)}: ${count.toLocaleString()}`);
-      });
-    console.log("");
-  },
-} as const;
-
-export function printSimulationSummary(
-  worldOutput: WorldInstance,
-  pipelineId: string,
-  runId: string,
-  mergedParams: Record<string, any>
-) {
-  console.log(
-    chalk.green(
-      `[symbolos] ✅ Simulation completed! Final tick: ${worldOutput.tick}`
-    )
-  );
-
-  console.log(
-    chalk.magenta(
-      "\n[symbolos] 📝 Simulation Summary:\n" +
-        `\n- Pipeline ID: ${pipelineId}` +
-        `\n- Run ID: ${runId}` +
-        `\n- Final Tick: ${worldOutput.tick}` +
-        `\n- Parameters:`
-    )
-  );
-  if (Object.keys(mergedParams).length === 0) {
-    console.log(chalk.gray("  No parameters provided."));
-  } else {
-    Object.entries(mergedParams).forEach(([key, value]) =>
-      console.log(chalk.magenta(`  - ${key}: ${value}`))
-    );
-  }
-}
 
 /**
  *
@@ -134,3 +25,72 @@ export function toWorldFrame(world: WorldInstance): WorldFrame {
     },
   });
 }
+
+export function addToWorld(
+  world: WorldInstance,
+  obj: SymbolicObject | SymbolicObject[]
+) {
+  const list = Array.isArray(obj) ? obj : [obj];
+  for (const o of list) {
+    if (!o.createdAt) o.createdAt = new Date().toISOString();
+    world.artifacts.set(o.id, o);
+  }
+}
+
+/**
+ * Removes an object or objects from the world by their ID(s).
+ * If the object is not found, a warning is logged.
+ *
+ * @param world - The WorldInstance from which to remove the object(s).
+ * @param id - The ID(s) of the object(s) to remove. Can be a single ID, an array of IDs,
+ *             or SymbolicObject(s) whose IDs will be extracted.
+ */
+export function removeFromWorld(
+  world: WorldInstance,
+  id: string | string[] | SymbolicObject | SymbolicObject[]
+) {
+  const ids = Array.isArray(id)
+    ? id.map((i) => (typeof i === "string" ? i : i.id))
+    : [typeof id === "string" ? id : id.id];
+
+  for (const objId of ids) {
+    if (world.artifacts.has(objId)) {
+      world.artifacts.delete(objId);
+    } else {
+      console.warn(
+        chalk.yellow(
+          `[symbolos] Warning: Object with ID ${objId} not found in world.`
+        )
+      );
+    }
+  }
+}
+
+
+export function hasType(world: WorldInstance, type: string): boolean {
+  return Array.from(world.artifacts.values()).some((o) => o.type === type);
+}
+export function getFromWorldByType<T extends SymbolicObject>(
+  world: WorldInstance,
+  type: string
+): T[] {
+  return Array.from(world.artifacts.values()).filter(
+    (o)=> o.type === type
+  ) as T[];
+}
+
+export function getFromWorldById<T extends SymbolicObject>(
+  world: WorldInstance,
+  id: string
+): T | undefined {
+  return world.artifacts.get(id) as T | undefined;
+}
+export function getFromWorldByIds<T extends SymbolicObject>(
+  world: WorldInstance,
+  ids: string[]
+): T[] {
+  return ids
+    .map((id) => world.artifacts.get(id) as T | undefined)
+    .filter((o): o is T => o !== undefined);
+}
+

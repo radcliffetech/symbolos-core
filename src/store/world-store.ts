@@ -14,3 +14,4 @@ export type WorldStore = {
   listPipelines(): Promise<string[]>;
   indexRun(pipelineId: string, runId: string): Promise<void>;
 };
+
