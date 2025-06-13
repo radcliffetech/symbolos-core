@@ -27,7 +27,7 @@ Symbolos enables a new paradigm: **worlds that understand themselves**. Every tr
 1. **Symbol over number**: Symbolos operates on structured symbolic entities, not numerical vectors.
 2. **Causality over mutation**: All changes occur through functors and are tracked step-by-step.
 3. **Forkability over finality**: At any point, a world can diverge — and both versions can persist and evolve independently.
-4. **Provenance over output**: Knowing *why* something changed is as important as what changed.
+4. **Provenance over output**: Knowing _why_ something changed is as important as what changed.
 
 ---
 
@@ -41,14 +41,6 @@ Symbolos enables a new paradigm: **worlds that understand themselves**. Every tr
 ---
 
 ## 🧩 Layered Architecture
-
-Symbolos is structured as a 5-layer system:
-
-1. **Symbolic Objects** — basic entities like Agents, Judgements, Laws
-2. **Transformations** — Functors and mutation logic
-3. **Orchestration** — Pipelines, Steps, and configuration
-4. **Execution** — Worlds, ticks, runtime simulation state
-5. **Linkage / Meta** — Symbolic provenance, relationships, forking
 
 ---
 

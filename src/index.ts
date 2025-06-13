@@ -1,4 +1,3 @@
-export * from "./simulators/world-simulator";
+export * from "./simulators/run-world-pipeline";
 export * from "./types";
-export { createSymbolicObject } from "./lib/object-factory";
-export { conwayGame } from "./pipelines/conway-game-of-life";
+export { World } from "./lib/world-context";

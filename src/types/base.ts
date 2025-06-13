@@ -1,13 +1,13 @@
 /** Core metadata shared by all symbolic objects */
-export interface BaseSymbolicObject {
+export interface IdentifiableObject {
   /** Unique identifier for this object */
   id: string;
+  label?: string;
+}
 
+export interface BaseSymbolicObject extends IdentifiableObject {
   /** The symbolic type of this object */
   type: string;
-
-  /** Human-readable label */
-  label?: string;
 
   /** Optional description of the object */
   description?: string;

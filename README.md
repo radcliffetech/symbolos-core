@@ -1,10 +1,10 @@
 # 🧠 Symbolos Core
 
-[![npm version](https://img.shields.io/npm/v/symbolos-core.svg)](https://www.npmjs.com/package/symbolos-core)
-
 **Symbolos Core** is a meta-systems substrate, a symbolic simulation and transformation engine. It enables programmable worlds, causal pipelines, and agent-based symbolic reasoning using structured Functors and Pipelines.
 
 This core module provides the universal symbolic substrate for higher-level applications in narrative AI, procedural metaphysics, planning, and beyond.
+
+Based in Category Theory, the Symbolos Core packs a lot into under 500 line of code.
 
 ---
 
@@ -21,86 +21,30 @@ Common use cases include:
 
 ---
 
-## 📁 File Structure
+## 🧠 Core Concepts
 
-```
-symbolos-core/
-├── cli/                           # CLI entry point for running simulations
-├── core/
-│   ├── utils/                     # File and functor application helpers
-│   ├── simulators/                # World simulator logic and test suite
-│   └── types/                     # Core symbolic type definitions
-├── docs/                          # Supporting documentation
-```
-
----
-
-## 🛠 Features
-
-- Composable symbolic Functors and Pipelines
-- WorldInstance execution model with ticks and steps
-- Provenance-aware symbolic transformations
-- CLI runner for testing pipelines
-- Minimal test coverage and fast simulation cycles
+- **World** — a symbolic state container with composable tick-based change
+- **Object** — the atomic symbolic unit (e.g. Note, Agent, Cell) with type, status, and tick
+- **Functor** — a transformation unit that mutates a world in context
+- **Pipeline** — a sequence of functor steps run over time
+- **Agent** — a symbolic entity that can perceive and alter the world
 
 ---
 
 ## 🚀 Getting Started
 
-### 📦 Installation
-
-```bash
-pnpm add symbolos-core
-```
-
-Or with npm:
-
-```bash
-npm install symbolos-core
-```
-
-Use `pnpm dev` to launch the CLI world simulator interactively.
-
-### 🔍 Usage Example
+To create and run a symbolic pipeline:
 
 ```ts
-import {
-  PipelineArgs,
-  createSymbolicObject,
-  makeNewWorld,
-  runWorldPipeline,
-} from "@radcliffetech/symbolos-core";
-import { conwayGame } from "@radcliffetech/symbolos-core/pipelines/conway-game-of-life";
+import { World, runPipeline } from "@radcliffetech/symbolos-core";
 
-const pipelineArgs = createSymbolicObject<PipelineArgs>("PipelineArgs", {
-  params: {
-    steps: 20,
-    seedPattern: "glider",
-    width: 9,
-    height: 9,
-  },
-});
+const world = World.createWorld();
+const steps = [...]; // define your FunctorSteps
 
-const newWorld = await runWorldPipeline({
-  world: makeNewWorld("poc-conway"),
-  steps: conwayGame.getSteps(pipelineArgs),
-  pipelineArgs,
-  config: {
-    verbose: true,
-    outputRoot: "./output",
-    archiveDirName: "conway-archive",
-    compress: true,
-  },
-});
-console.log(`✅ Simulation completed. Final tick: ${newWorld.tick}`);
-console.log(`🔢 World contains ${newWorld.artifacts.size} symbolic objects.`);
+const result = await runPipeline({ world, steps });
 ```
 
-## ✅ Testing
-
-```bash
-pnpm test
-```
+---
 
 ## 🧩 License
 
@@ -111,7 +55,6 @@ This license applies to the symbolic execution substrate, including:
 - Core types
 - Functors
 - Pipeline execution
-- CLI runner
 
 ---
 
