@@ -2,6 +2,8 @@
 
 ---
 
+## [0.3.1] — 2025-06-13
+
 🛠 Patch release: updated build config for compatibility and npm packaging
 
 ## [0.3.0] — 2025-06-13
