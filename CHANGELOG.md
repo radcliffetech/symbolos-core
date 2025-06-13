@@ -2,6 +2,8 @@
 
 ---
 
+🛠 Patch release: updated build config for compatibility and npm packaging
+
 ## [0.3.0] — 2025-06-13
 
 🚀 Symbolic API Refinement & Pipeline Cleanup

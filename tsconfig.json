@@ -9,7 +9,11 @@
     "baseUrl": "./",
     "outDir": "dist",
     "declaration": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "downlevelIteration": true,
+    "paths": {
+      "src/*": ["./src/*"]
+    }
   },
   "include": ["src/**/*", "src/world-systems/examples/**/*", "types"]
 }
