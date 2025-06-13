@@ -1,5 +1,5 @@
 import {
-  createSymbolicObject,
+  createObject,
   PipelineArgs,
   runGen2WorldSimulation,
   type Functor,
@@ -12,7 +12,7 @@ const mockFunctor: Functor<any, any> = {
   method: "mockMethod",
   name: "MockFunctor",
   description: "A mock functor for testing",
-  apply: async () => createSymbolicObject("MockOutput", {}),
+  apply: async () => createObject("MockOutput", {}),
   describeProvenance: () => ({
     id: "mock-provenance",
     description: "Mock provenance for testing",

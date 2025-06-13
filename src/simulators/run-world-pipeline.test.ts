@@ -1,23 +1,23 @@
-import type { PipelineArgs, SymbolicAction, WorldFunctorStep } from "../types";
-import { createWorld, runWorldPipeline } from "./run-world-pipeline";
+import type { FunctorStep, PipelineArgs } from "../types";
 import { describe, expect, it } from "vitest";
 
-import { createSymbolicObject } from "../lib/object-factory";
+import { World } from "../lib/world-context";
+import { runPipeline } from "./run-world-pipeline";
 
-describe("runWorldPipeline", () => {
+describe("runPipeline", () => {
   it("logs symbolic actions with correct actorId, inputId, and outputId", async () => {
-    const world = createWorld("gen3-test");
-    const agent = createSymbolicObject("Agent", {
+    const world = World.createWorld("gen3-test");
+    const agent = World.createObject("Agent", {
       id: "agent-1",
     });
     world.artifacts.set(agent.id, agent);
 
-    const pipelineArgs: PipelineArgs = createSymbolicObject("PipelineArgs", {
+    const pipelineArgs: PipelineArgs = World.createObject("PipelineArgs", {
       id: "args-1",
       params: {},
     });
 
-    const steps: WorldFunctorStep[] = [
+    const steps: FunctorStep[] = [
       {
         id: "step-1",
         functor: {
@@ -25,7 +25,7 @@ describe("runWorldPipeline", () => {
           method: "decide",
           name: "ChoiceFunctor",
           async apply({ world }) {
-            const choice = createSymbolicObject("Choice", {
+            const choice = World.createObject("Choice", {
               id: "choice-1",
               tick: world.tick,
               rootId: "agent-1",
@@ -43,15 +43,13 @@ describe("runWorldPipeline", () => {
       },
     ];
 
-    const result = await runWorldPipeline({
+    const result = await runPipeline({
       world,
       steps,
       pipelineArgs,
     });
 
-    const actions = Array.from(result.artifacts.values()).filter(
-      (o): o is SymbolicAction => o.type === "SymbolicAction"
-    );
+    const actions = result.actions;
 
     expect(actions.length).toBe(1);
     const action = actions[0];

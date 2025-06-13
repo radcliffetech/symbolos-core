@@ -3,16 +3,16 @@ import {
   type WorldFrame,
   type WorldInstance,
 } from "../types";
-import { createSymbolicObject } from "./object-factory";
+
 import chalk from "chalk";
 
 /**
- *
- * Converts a WorldInstance to a WorldFrame symbolic object.
- * This is useful for archiving or storing the world state.
+ * Converts a WorldInstance into a WorldFrame representation.
+ * @param world - The WorldInstance to convert.
+ * @returns A WorldFrame object representing the world state.
  */
 export function toWorldFrame(world: WorldInstance): WorldFrame {
-  return createSymbolicObject("WorldFrame", {
+  return createObject("WorldFrame", {
     description: `World frame for tick ${world.tick}`,
     id: `frame-${world.tick}`,
     tick: world.tick,
@@ -25,9 +25,11 @@ export function toWorldFrame(world: WorldInstance): WorldFrame {
     },
   });
 }
+
 /**
- * Converts a WorldFrame symbolic object back to a WorldInstance.
- * This is useful for restoring the world state from an archived frame.
+ * Converts a WorldFrame back into a WorldInstance.
+ * @param frame - The WorldFrame to convert.
+ * @returns A WorldInstance reconstructed from the frame.
  */
 export function toWorldInstance(frame: WorldFrame): WorldInstance {
   return {
@@ -42,6 +44,12 @@ export function toWorldInstance(frame: WorldFrame): WorldInstance {
     context: new Map(),
   };
 }
+
+/**
+ * Adds one or more SymbolicObjects to the world's artifacts.
+ * @param world - The WorldInstance to add objects to.
+ * @param obj - A single SymbolicObject or an array of SymbolicObjects to add.
+ */
 export function addToWorld(
   world: WorldInstance,
   obj: SymbolicObject | SymbolicObject[]
@@ -54,12 +62,9 @@ export function addToWorld(
 }
 
 /**
- * Removes an object or objects from the world by their ID(s).
- * If the object is not found, a warning is logged.
- *
- * @param world - The WorldInstance from which to remove the object(s).
- * @param id - The ID(s) of the object(s) to remove. Can be a single ID, an array of IDs,
- *             or SymbolicObject(s) whose IDs will be extracted.
+ * Removes one or more objects from the world's artifacts by ID or object reference.
+ * @param world - The WorldInstance to remove objects from.
+ * @param id - A string ID, an array of IDs, a SymbolicObject, or an array of SymbolicObjects to remove.
  */
 export function removeFromWorld(
   world: WorldInstance,
@@ -82,29 +87,77 @@ export function removeFromWorld(
   }
 }
 
-export function hasType(world: WorldInstance, type: string): boolean {
-  return Array.from(world.artifacts.values()).some((o) => o.type === type);
-}
-export function getFromWorldByType<T extends SymbolicObject>(
-  world: WorldInstance,
-  type: string
-): T[] {
-  return Array.from(world.artifacts.values()).filter(
-    (o) => o.type === type
-  ) as T[];
+/**
+ * Creates a forked copy of a WorldInstance with optional new parameters.
+ * @param sourceWorld - The original WorldInstance to fork.
+ * @param newParams - Optional parameters to include in the forked world's context.
+ * @returns A new WorldInstance forked from the source.
+ */
+export function forkWorld(
+  sourceWorld: WorldInstance,
+  newParams?: Record<string, any>
+): WorldInstance {
+  const artifacts = new Map<string, SymbolicObject>();
+  for (const [id, obj] of sourceWorld.artifacts.entries()) {
+    artifacts.set(id, obj);
+  }
+  const newId = "forked-" + crypto.randomUUID();
+  return {
+    id: newId,
+    tick: sourceWorld.tick,
+    step: sourceWorld.step,
+    runId: newId,
+    pipelineId: sourceWorld.pipelineId,
+    artifacts,
+    context: {
+      _artifactsById: artifacts,
+      ...sourceWorld.context,
+      forkedFromRunId: sourceWorld.runId,
+      ...(newParams ? { pipelineArgs: { params: newParams } } : {}),
+    },
+  };
 }
 
-export function getFromWorldById<T extends SymbolicObject>(
-  world: WorldInstance,
-  id: string
-): T | undefined {
-  return world.artifacts.get(id) as T | undefined;
+/**
+ * Creates a new WorldInstance with optional IDs.
+ * @param worldId - Optional ID for the world.
+ * @param runId - Optional run ID for the world.
+ * @returns A new WorldInstance object.
+ */
+export function createWorld(worldId?: string, runId?: string): WorldInstance {
+  const id = worldId || "world-" + crypto.randomUUID();
+  return {
+    id,
+    tick: 0,
+    step: 0,
+    runId: runId || new Date().toISOString().replace(/[:.]/g, "-"),
+    pipelineId: worldId || "world-" + crypto.randomUUID(),
+    artifacts: new Map<string, SymbolicObject>(),
+    context: {},
+  };
 }
-export function getFromWorldByIds<T extends SymbolicObject>(
-  world: WorldInstance,
-  ids: string[]
-): T[] {
-  return ids
-    .map((id) => world.artifacts.get(id) as T | undefined)
-    .filter((o): o is T => o !== undefined);
+
+/**
+ * Creates a new SymbolicObject of a specified type with given data.
+ * @param type - The type of the object to create.
+ * @param data - Partial data to initialize the object with, excluding type and timestamps.
+ * @returns A new SymbolicObject of the specified type.
+ */
+export function createObject<T extends SymbolicObject = SymbolicObject>(
+  type: T["type"],
+  data: Omit<Partial<T>, "type" | "createdAt" | "updatedAt">
+): T {
+  const id =
+    data.id ??
+    `${type
+      .replace(/([a-z])([A-Z])/g, "$1-$2")
+      .toLowerCase()}-${crypto.randomUUID()}`;
+  return {
+    ...data,
+    id,
+    type,
+    rootId: data.rootId ?? id,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  } as T;
 }

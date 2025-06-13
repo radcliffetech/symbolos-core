@@ -7,9 +7,8 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "start": "tsx cli/run-world-simulator.ts",
-    "dev": "tsx cli/run-world-simulator.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "keywords": [
     "symbolic",

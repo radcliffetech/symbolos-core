@@ -9,8 +9,8 @@ All notable changes to this project will be documented in this file.
 🧠 Gen3 Pipeline Execution
 
 - Introduced `WorldFunctor` interface for world-in/world-out transformations
-- Added `runWorldPipeline` simulator for Gen3 symbolic pipelines
-- Introduced `WorldPipelineDefinition` and `WorldFunctorStep` types
+- Added `runPipeline` simulator for Gen3 symbolic pipelines
+- Introduced `PipelineDefinition` and `FunctorStep` types
 - Clean separation between Gen2 (object) and Gen3 (world) pipeline execution
 
 🧾 Symbolic Action Logging
@@ -32,7 +32,7 @@ All notable changes to this project will be documented in this file.
 
 🧼 Type & Structure Cleanup
 
-- Updated `WorldFunctor` return type to require `{ world, outputObject?, output? }`
+- Updated `Functor` return type to require `{ world, outputObject?, output? }`
 - Removed obsolete `criteriaId` and Gen2 functor assumptions
 - Cleaned up redundant logic around flattening and artifact promotion
 
@@ -61,7 +61,7 @@ All notable changes to this project will be documented in this file.
 
 🧠 Functional Enhancements
 
-- Added `createSymbolicObject()` factory to standardize object creation (IDs, timestamps, types)
+- Added `createObject()` factory to standardize object creation (IDs, timestamps, types)
 - Refactored `storeWorldArchive`, `storeWorldFrame`, and `PipelineRun` to use the factory
 - Improved ID formatting with slugified type names (e.g. `world-frame-...`)
 
