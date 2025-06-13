@@ -71,3 +71,5 @@ export type WorldArchive = BaseSymbolicObject & {
   members: BaseSymbolicObject[]; // All included objects, for easy retrieval
   filePath?: string; // Path to the .world.json.gz archive
 };
+
+

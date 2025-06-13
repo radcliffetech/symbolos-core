@@ -1,29 +1,11 @@
 import { BaseSymbolicObject } from "./base";
-import { FunctorStep } from "./transformation";
-import { PipelineArgs } from "./orchestration";
-
-/** Describes a pipeline's structure and parameters */
-export interface PipelineDefinition {
-  id: string;
-  label: string;
-  description: string;
-  args: {
-    required: string[];
-    optional?: string[];
-    defaults?: Record<string, any>;
-  };
-  getSteps: (args: PipelineArgs) => FunctorStep[];
-  version?: number;
-}
-
-
 
 /**
  * Represents the live, tick-by-tick state of a symbolic world.
  * Not stored as a symbolic object — used during execution only.
  */
 export type WorldInstance = {
-  id?: string;
+  id: string;
   tick: number;
   step: number;
   runId: string;
@@ -53,17 +35,10 @@ export interface WorldFunctor {
   description?: string;
   method: string;
   group?: string;
-  inputType: "WorldInstance";
-  outputType: "WorldInstance";
   apply: (input: { world: WorldInstance }) => Promise<{
     world: WorldInstance;
-    outputObject?: BaseSymbolicObject;
     output?: BaseSymbolicObject[];
   }>;
-  describeProvenance?: (
-    input: { world: WorldInstance },
-    output: WorldInstance
-  ) => Record<string, any>;
   requiresTickAdvance?: boolean;
 }
 
@@ -82,10 +57,34 @@ export type WorldFunctorStep = {
   tickType?: string;
 };
 
+export interface WorldSystem<A = BaseAgent, C = Record<string, any>> {
+  id: string;
+  agents: A[];
+  pipeline: WorldFunctorStep[];
+  config?: C;
+}
+
 export interface WorldPipelineDefinition {
   id: string;
   label: string;
   description: string;
   steps: WorldFunctorStep[];
   version: 3;
+}
+
+export interface WorldSystemDefinition {
+  id: string;
+  label: string;
+  description: string;
+  pipelines: WorldPipelineDefinition[];
+  types?: string[];
+}
+
+export interface BaseAgent {
+  id: string;
+  name: string;
+  generate(
+    this: this,
+    world: WorldInstance
+  ): Promise<{ world: WorldInstance; output?: BaseSymbolicObject[] }>;
 }

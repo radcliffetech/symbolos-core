@@ -117,6 +117,7 @@ export function createWorldInstanceFromFrame({
     artifacts.set(obj.id, obj);
   }
   return {
+    id: frame.id || `world-${frame.tick}`,
     tick: frame.tick ?? 0,
     step: frame.step ?? 0,
     runId,
@@ -126,15 +127,14 @@ export function createWorldInstanceFromFrame({
   };
 }
 
-export function createNewWorldInstance(
-  pipelineId: string,
-  runId?: string
-): WorldInstance {
+export function createWorld(worldId?: string, runId?: string): WorldInstance {
+  const id = worldId || "world-" + crypto.randomUUID();
   return {
+    id,
     tick: 0,
     step: 0,
     runId: runId || new Date().toISOString().replace(/[:.]/g, "-"),
-    pipelineId,
+    pipelineId: worldId || "world-" + crypto.randomUUID(),
     artifacts: new Map<string, SymbolicObject>(),
     context: {},
   };
@@ -145,21 +145,26 @@ export async function runWorldPipeline({
   world,
   steps,
   pipelineArgs,
-  frameHandler = () => {},
+  frameHandler = (world) => world,
 }: {
   world: WorldInstance;
   steps: WorldFunctorStep[];
-  pipelineArgs: PipelineArgs;
-  frameHandler?: (world: WorldInstance) => void;
+  pipelineArgs?: PipelineArgs;
+  frameHandler?: (world: WorldInstance) => WorldInstance;
 }): Promise<WorldInstance> {
   if (!world.context) world.context = {};
   if (!world.artifacts) world.artifacts = new Map();
-  world.context._artifactsById = world.artifacts;
 
+  world.context._artifactsById = world.artifacts;
+  if (!pipelineArgs) {
+    pipelineArgs = createSymbolicObject<PipelineArgs>("PipelineArgs", {
+      id: "pipeline-args-" + crypto.randomUUID(),
+      params: {},
+    });
+  }
+  world.context.pipelineArgs = pipelineArgs;
   world.context.pipelineId = world.pipelineId;
   world.context.runId = world.runId;
-
-  addToArtifacts(world.context, pipelineArgs);
 
   for (const [index, step] of Object.entries(steps)) {
     if (step.tickAdvance !== false) {
@@ -172,12 +177,12 @@ export async function runWorldPipeline({
     if (!result.world.artifacts) result.world.artifacts = new Map();
     result.world.context._artifactsById = result.world.artifacts;
 
+    if (!result.world.context._batchedEntries)
+      result.world.context._batchedEntries = [];
 
-
-    if (!result.world.context._batchedEntries) result.world.context._batchedEntries = [];
-
-    const outputObject = result.outputObject ?? null;
-    const outputList = result.output ?? (outputObject ? [outputObject] : []);
+    const outputList = result.output
+      ? flattenSymbolicObjects(result.output)
+      : [];
     for (const entry of outputList) {
       result.world.context._batchedEntries.push({
         entry,
@@ -186,12 +191,10 @@ export async function runWorldPipeline({
         purpose: step.purpose,
         tick: world.tick,
         stepPrefix: String(Number(index) + 1).padStart(3, "0"),
-        outputObject,
       });
     }
-    result.world.context._lastOutputObject = outputObject;
 
-    await frameHandler(world);
+    world = frameHandler(world);
   }
 
   for (const batched of world.context._batchedEntries ?? []) {
@@ -209,15 +212,15 @@ export async function runWorldPipeline({
 
   world.context._batchedEntries = [];
 
-  const pipelineRun = createPipelineRunObject(
-    world.pipelineId,
-    world.runId,
-    world.tick,
-    steps.length,
-    world.context.forkedFromRunId
-  );
+  // const pipelineRun = createPipelineRunObject(
+  //   world.pipelineId,
+  //   world.runId,
+  //   world.tick,
+  //   steps.length,
+  //   world.context.forkedFromRunId
+  // );
 
-  addToArtifacts(world.context, pipelineRun);
+  // addToArtifacts(world.context, pipelineRun);
 
   return world;
 }
@@ -230,11 +233,12 @@ export function forkWorld(
   for (const [id, obj] of sourceWorld.artifacts.entries()) {
     artifacts.set(id, obj);
   }
-
+  const newId = "forked-" + crypto.randomUUID();
   return {
+    id: newId,
     tick: sourceWorld.tick,
     step: sourceWorld.step,
-    runId: "forked-" + crypto.randomUUID(),
+    runId: newId,
     pipelineId: sourceWorld.pipelineId,
     artifacts,
     context: {

@@ -29,5 +29,8 @@ export const getSymbolicWorldStore = (
     getAll(): SymbolicObject[] {
       return artifacts;
     },
+    getWorld(): WorldInstance {
+      return {...world};
+    }
   };
 };

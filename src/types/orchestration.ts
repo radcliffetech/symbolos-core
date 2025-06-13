@@ -1,21 +1,5 @@
-import { SymbolicObject } from "./object";
-
-/** A single executed step in a pipeline */
-export type PipelineStep = SymbolicObject & {
-  type: "PipelineStep";
-  id: string;
-  pipelineId: string;
-  runId: string;
-  stepId: string;
-  functor: string;
-  inputRefIds: string[];
-  outputRefIds: string[];
-  params?: Record<string, any>;
-  startedAt?: string;
-  completedAt?: string;
-  status?: "pending" | "running" | "completed" | "failed";
-  metadata?: Record<string, any>;
-};
+import type { SymbolicObject } from "./object";
+import type { WorldInstance } from "./execution";
 
 /** Represents a full symbolic execution of a pipeline */
 export type PipelineRun = SymbolicObject & {
@@ -49,11 +33,11 @@ export type WorldSimulatorConfig = {
   compress?: boolean;
 };
 
-
 export type SymbolicWorldStore = {
   getByType<T extends SymbolicObject>(type: string): T[];
   getById<T extends SymbolicObject>(id: string): T | undefined;
   getByIds<T extends SymbolicObject>(ids: string[]): T[];
   getLatestOfType<T extends SymbolicObject>(type: string): T | undefined;
   getAll(): SymbolicObject[];
+  getWorld(): WorldInstance;
 };

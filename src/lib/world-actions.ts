@@ -25,7 +25,23 @@ export function toWorldFrame(world: WorldInstance): WorldFrame {
     },
   });
 }
-
+/**
+ * Converts a WorldFrame symbolic object back to a WorldInstance.
+ * This is useful for restoring the world state from an archived frame.
+ */
+export function toWorldInstance(frame: WorldFrame): WorldInstance {
+  return {
+    id: frame.id || `world-${frame.tick}`,
+    tick: frame.tick,
+    step: frame.step,
+    runId: frame.runId,
+    pipelineId: frame.pipelineId,
+    artifacts: new Map(
+      frame.members.map((m) => [m.id, m] as [string, SymbolicObject])
+    ),
+    context: new Map(),
+  };
+}
 export function addToWorld(
   world: WorldInstance,
   obj: SymbolicObject | SymbolicObject[]
@@ -66,7 +82,6 @@ export function removeFromWorld(
   }
 }
 
-
 export function hasType(world: WorldInstance, type: string): boolean {
   return Array.from(world.artifacts.values()).some((o) => o.type === type);
 }
@@ -75,7 +90,7 @@ export function getFromWorldByType<T extends SymbolicObject>(
   type: string
 ): T[] {
   return Array.from(world.artifacts.values()).filter(
-    (o)=> o.type === type
+    (o) => o.type === type
   ) as T[];
 }
 
@@ -93,4 +108,3 @@ export function getFromWorldByIds<T extends SymbolicObject>(
     .map((id) => world.artifacts.get(id) as T | undefined)
     .filter((o): o is T => o !== undefined);
 }
-

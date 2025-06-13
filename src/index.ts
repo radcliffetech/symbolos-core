@@ -1,15 +1,10 @@
-export * from "./simulators/world-pipeline";
-export { runGen2WorldSimulation } from "./simulators/world-simulator";
+export * from "./simulators/run-world-pipeline";
 export * from "./types";
 export { createSymbolicObject } from "./lib/object-factory";
-export { conwayGame } from "./pipelines/conway-game-of-life";
-export { storeWorldFrame } from "./lib/world-utils";
-export { storeWorldArchive } from "./lib/world-utils";
-export type { WorldStore } from "./store/world-store";
-export { createRedisWorldStore } from "./lib/redis-world-store";
-export { getRedisClient } from "./lib/redis-utils";
+
 export {
   toWorldFrame,
+  toWorldInstance,
   addToWorld,
   removeFromWorld,
   getFromWorldById,

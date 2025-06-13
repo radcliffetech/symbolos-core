@@ -9,6 +9,7 @@ describe("world-actions", () => {
 
   beforeEach(() => {
     world = {
+      id: "test-world",
       tick: 0,
       step: 0,
       pipelineId: "test",
@@ -48,6 +49,4 @@ describe("world-actions", () => {
     removeFromWorld(world, [a, b]);
     expect(world.artifacts.size).toBe(0);
   });
-
-  
 });

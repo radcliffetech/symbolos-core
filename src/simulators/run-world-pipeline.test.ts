@@ -1,12 +1,12 @@
 import type { PipelineArgs, SymbolicAction, WorldFunctorStep } from "../types";
-import { createNewWorldInstance, runWorldPipeline } from "./world-pipeline";
+import { createWorld, runWorldPipeline } from "./run-world-pipeline";
 import { describe, expect, it } from "vitest";
 
 import { createSymbolicObject } from "../lib/object-factory";
 
 describe("runWorldPipeline", () => {
   it("logs symbolic actions with correct actorId, inputId, and outputId", async () => {
-    const world = createNewWorldInstance("gen3-test");
+    const world = createWorld("gen3-test");
     const agent = createSymbolicObject("Agent", {
       id: "agent-1",
     });
@@ -24,8 +24,6 @@ describe("runWorldPipeline", () => {
           id: "functor-choice",
           method: "decide",
           name: "ChoiceFunctor",
-          inputType: "WorldInstance",
-          outputType: "WorldInstance",
           async apply({ world }) {
             const choice = createSymbolicObject("Choice", {
               id: "choice-1",
@@ -49,7 +47,6 @@ describe("runWorldPipeline", () => {
       world,
       steps,
       pipelineArgs,
-      simulatorConfig: { verbose: false },
     });
 
     const actions = Array.from(result.artifacts.values()).filter(
