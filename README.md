@@ -4,6 +4,8 @@
 
 This core module provides the universal symbolic substrate for higher-level applications in narrative AI, procedural metaphysics, planning, and beyond.
 
+Based in Category Theory, the Symbolos Core packs a lot into under 500 line of code.
+
 ---
 
 ## ❓ Why Symbolos Core?
@@ -19,53 +21,30 @@ Common use cases include:
 
 ---
 
-## 📁 File Structure
+## 🧠 Core Concepts
 
-```
-symbolos-core/
-├── cli/                           # CLI entry point for running simulations
-├── core/
-│   ├── utils/                     # File and functor application helpers
-│   ├── simulators/                # World simulator logic and test suite
-│   └── types/                     # Core symbolic type definitions
-├── docs/                          # Supporting documentation
-```
-
----
-
-## 🛠 Features
-
-- Composable symbolic Functors and Pipelines
-- WorldInstance execution model with ticks and steps
-- Provenance-aware symbolic transformations
-- CLI runner for testing pipelines
-- Minimal test coverage and fast simulation cycles
+- **World** — a symbolic state container with composable tick-based change
+- **Object** — the atomic symbolic unit (e.g. Note, Agent, Cell) with type, status, and tick
+- **Functor** — a transformation unit that mutates a world in context
+- **Pipeline** — a sequence of functor steps run over time
+- **Agent** — a symbolic entity that can perceive and alter the world
 
 ---
 
 ## 🚀 Getting Started
 
-### 📦 Installation
+To create and run a symbolic pipeline:
 
-```bash
-pnpm add symbolos-core
+```ts
+import { World, runPipeline } from "@radcliffetech/symbolos-core";
+
+const world = World.createWorld();
+const steps = [...]; // define your FunctorSteps
+
+const result = await runPipeline({ world, steps });
 ```
 
-Or with npm:
-
-```bash
-npm install symbolos-core
-```
-
-Use `pnpm dev` to launch the CLI world simulator interactively.
-
-### 🔍 Usage Example
-
-## ✅ Testing
-
-```bash
-pnpm test
-```
+---
 
 ## 🧩 License
 

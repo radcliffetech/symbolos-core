@@ -1,0 +1,740 @@
+/** Core metadata shared by all symbolic objects */
+export interface IdentifiableObject {
+  /** Unique identifier for this object */
+  id: string;
+  label?: string;
+}
+
+export interface BaseSymbolicObject extends IdentifiableObject {
+  /** The symbolic type of this object */
+  type: string;
+
+  /** Optional description of the object */
+  description?: string;
+
+  /** ISO timestamp when this object was created */
+  createdAt: string;
+
+  /** ISO timestamp when this object was last updated */
+  updatedAt?: string;
+
+  /** ISO timestamp when this object was last validated */
+  validatedAt?: string;
+
+  /** Status string (e.g., "active", "archived", etc.) */
+  status: string;
+
+  /** ID of the root object in the ancestry tree */
+  rootId?: string;
+
+  /** Originating source system or process */
+  source?: string;
+
+  /** Request ID associated with this object's generation */
+  requestId?: string;
+
+  /** Direct parent ID (lineage tracking) */
+  parentId?: string;
+
+  /** Revision number, if versioned */
+  revisionNumber?: number;
+
+  /** ID of the original version or ancestor */
+  originId?: string;
+
+  /** Logical simulation tick, if applicable */
+  tick?: number;
+
+  /** Optional provenance metadata about how this object was generated */
+  generationContext?: {
+    prompt: string;
+    generatorParams: object;
+    model: string;
+    temperature?: number;
+    maxTokens?: number;
+    systemPrompt?: string;
+    notes?: string;
+  };
+
+  /** Arbitrary metadata for extension or tags */
+  metadata?: Record<string, any>;
+}
+import type { BaseSymbolicObject, IdentifiableObject } from "./base";
+
+// Represents any basic symbolic entity in the system
+export type SymbolicObject = BaseSymbolicObject;
+
+// Describes an action performed symbolically within the system
+export type SymbolicAction = BaseSymbolicObject & {
+  type: "SymbolicAction";
+  /** ID of the acting agent */
+  actorId: string;
+  /** ID of the transformation applied */
+  transformationId: string;
+  /** ID of the instrument or tool used */
+  instrumentId?: string;
+  /** ID of the input object */
+  inputId: string;
+  /** ID of the output object */
+  outputId: string;
+  /** ID of the context in which the action occurs */
+  contextId: string;
+  /** Purpose or intent of the action */
+  purpose?: string;
+  /** ISO timestamp when the action occurred */
+  timestamp: string;
+  /** Optional notes about the action */
+  notes?: string;
+};
+
+// Represents a stored collection of symbolic objects forming a world archive
+export type WorldArchive = BaseSymbolicObject & {
+  type: "WorldArchive";
+  name: string;
+  memberIds: string[]; // IDs of all included SymbolicObjects
+  members: BaseSymbolicObject[]; // All included objects, for easy retrieval
+  filePath?: string; // Path to the .world.json.gz archive
+  metadata?: Record<string, any>;
+};
+
+// Captures the current runtime state of the symbolic world during execution
+export type WorldInstance = IdentifiableObject & {
+  tick: number;
+  step: number;
+  runId: string;
+  pipelineId: string;
+  artifacts: Map<string, BaseSymbolicObject>;
+  context: Record<string, any>;
+  metadata?: Record<string, any>;
+};
+
+// Defines a snapshot of the symbolic world at a specific point in time
+export type WorldFrame = BaseSymbolicObject & {
+  type: "WorldFrame";
+  tick: number;
+  step: number;
+  pipelineId: string;
+  runId: string;
+  memberIds?: string[];
+  members: BaseSymbolicObject[];
+  metadata?: Record<string, any>;
+};
+
+// Holds the parameters and initial state for a pipeline execution
+export type PipelineArgs = SymbolicObject & {
+  type: "PipelineArgs";
+  params: Record<string, any>;
+  metadata?: Record<string, any>;
+  storePipelineRun?: boolean; // Whether to store the pipeline run in the world
+};
+
+/** Represents a full symbolic execution of a pipeline */
+// Tracks the lifecycle and metadata of a pipeline run
+export type PipelineRun = SymbolicObject & {
+  type: "PipelineRun";
+  pipelineId: string;
+  runId: string;
+  pipelineArgsId: string;
+  stepIds: string[];
+  tickCount: number;
+  stepCount: number;
+  artifactIds?: string[];
+  startedAt: string;
+  completedAt?: string;
+  status: "pending" | "running" | "completed" | "failed";
+  metadata?: Record<string, any>;
+};
+
+// Represents the full result of running a symbolic pipeline
+export interface PipelineResult {
+  world: WorldInstance;
+  actions: SymbolicAction[];
+  tickCount: number;
+  pipelineRun?: PipelineRun;
+  /** Duration in milliseconds */
+  duration: number;
+}
+
+// Defines a functional unit that operates on a WorldInstance to produce a new state
+export interface Functor extends IdentifiableObject {
+  name: string;
+  description?: string;
+  method: string;
+  group?: string;
+  apply: (input: { world: WorldInstance }) => Promise<{
+    world: WorldInstance;
+    output?: BaseSymbolicObject[];
+  }>;
+  requiresTickAdvance?: boolean;
+}
+
+// Represents a single step in a pipeline, linking to a Functor and its execution details
+export type FunctorStep = IdentifiableObject & {
+  description?: string;
+  functor: Functor;
+  purpose: string;
+  role?: string;
+  resolveInput?: (
+    input: WorldInstance,
+    context: Record<string, any>
+  ) => Promise<{ world: WorldInstance }>;
+  storeOutputAs?: string;
+  tickAdvance?: boolean;
+  tickType?: string;
+};
+
+// Represents an agent capable of generating symbolic outputs within a world context
+export interface BaseAgent extends IdentifiableObject {
+  name: string;
+  generate(
+    this: this,
+    world: WorldInstance
+  ): Promise<{ world: WorldInstance; output?: BaseSymbolicObject[] }>;
+}
+
+// Describes the structure and metadata of a symbolic pipeline definition
+export interface PipelineDefinition extends IdentifiableObject {
+  label: string;
+  description: string;
+  steps: FunctorStep[];
+  version: 3;
+}
+
+// Defines a system composed of multiple pipelines and associated types
+export interface SystemDefinition extends IdentifiableObject {
+  label: string;
+  description: string;
+  pipelines: PipelineDefinition[];
+  types?: string[];
+}
+export * from "./core";
+import type {
+  FunctorStep,
+  PipelineArgs,
+  PipelineResult,
+  PipelineRun,
+  SymbolicAction,
+  WorldInstance,
+} from "../types";
+import {
+  addToArtifacts,
+  createPipelineRunObject,
+  flattenSymbolicObjects,
+  recordSymbolicAction,
+} from "../lib/pipeline-helpers";
+
+import { World } from "../lib/world-context";
+
+/**
+ * Executes a sequence of symbolic functor steps on a WorldInstance.
+ * Handles tick advancement, symbolic output batching, and provenance tracking.
+ *
+ * @param world - The mutable symbolic runtime.
+ * @param steps - Ordered list of functor steps.
+ * @param pipelineArgs - Optional parameter object.
+ * @param frameHandler - Optional post-step hook.
+ * @returns An object containing the updated world, actions, tickCount, optional pipelineRun, and duration in milliseconds.
+ */
+export async function runPipeline({
+  world,
+  steps,
+  pipelineArgs,
+  frameHandler = (world) => world,
+}: {
+  world: WorldInstance;
+  steps: FunctorStep[];
+  pipelineArgs?: PipelineArgs;
+  frameHandler?: (world: WorldInstance) => WorldInstance;
+}): Promise<PipelineResult> {
+  const start = performance.now();
+
+  if (!world.context) world.context = {};
+  if (!world.artifacts) world.artifacts = new Map();
+
+  world.context._artifactsById = world.artifacts;
+  if (!pipelineArgs) {
+    pipelineArgs = World.createObject<PipelineArgs>("PipelineArgs", {
+      id: "pipeline-args-" + crypto.randomUUID(),
+      params: {},
+    });
+  }
+  world.context.pipelineArgs = pipelineArgs;
+  world.context.pipelineId = world.pipelineId;
+  world.context.runId = world.runId;
+
+  const symbolicActions: SymbolicAction[] = [];
+  let pipelineRun: PipelineRun | undefined;
+
+  for (const [index, step] of Object.entries(steps)) {
+    if (step.tickAdvance !== false) {
+      world.tick += 1;
+    }
+
+    const result = await step.functor.apply({ world });
+
+    if (!result.world.context) result.world.context = {};
+    if (!result.world.artifacts) result.world.artifacts = new Map();
+    result.world.context._artifactsById = result.world.artifacts;
+
+    if (!result.world.context._batchedEntries)
+      result.world.context._batchedEntries = [];
+
+    const outputList = result.output
+      ? flattenSymbolicObjects(result.output)
+      : [];
+    for (const entry of outputList) {
+      result.world.context._batchedEntries.push({
+        entry,
+        transformationId: step.id,
+        instrumentId: step.functor.id,
+        purpose: step.purpose,
+        tick: world.tick,
+        stepPrefix: String(Number(index) + 1).padStart(3, "0"),
+      });
+    }
+
+    world = frameHandler(world);
+  }
+
+  for (const batched of world.context._batchedEntries ?? []) {
+    const action = await recordSymbolicAction({
+      entry: batched.entry,
+      transformationId: batched.transformationId,
+      instrumentId: batched.instrumentId,
+      purpose: batched.purpose,
+      context: world.context,
+      stepPrefix: batched.stepPrefix,
+      tick: batched.tick,
+      outputObject: batched.outputObject,
+    });
+    symbolicActions.push(action);
+  }
+
+  world.context._batchedEntries = [];
+  if (pipelineArgs.storePipelineRun !== false) {
+    pipelineRun = createPipelineRunObject(
+      world.pipelineId,
+      world.runId,
+      world.tick,
+      steps.length,
+      world.context.forkedFromRunId
+    );
+
+    addToArtifacts(world.context, pipelineRun);
+  }
+
+  const duration = performance.now() - start;
+
+  return {
+    world,
+    actions: symbolicActions,
+    tickCount: world.tick,
+    pipelineRun,
+    duration,
+  };
+}
+import type { PipelineRun, SymbolicAction, SymbolicObject } from "../types";
+
+import { World } from "../lib/world-context";
+
+/**
+ * Creates a PipelineRun object with the given pipeline identifiers and run metadata.
+ * @param pipelineId - The ID of the pipeline.
+ * @param runId - The unique identifier for this run.
+ * @param tick - The tick count for this run.
+ * @param stepCount - The number of steps executed in this run.
+ * @param forkedFromRunId - (Optional) The runId from which this run was forked.
+ * @returns A new PipelineRun object.
+ */
+export function createPipelineRunObject(
+  pipelineId: string,
+  runId: string,
+  tick: number,
+  stepCount: number,
+  forkedFromRunId?: string
+) {
+  return World.createObject<PipelineRun>("PipelineRun", {
+    id: `pipeline-run-${crypto.randomUUID()}`,
+    label: forkedFromRunId
+      ? `Forked Run from ${forkedFromRunId}`
+      : "Pipeline Run",
+    pipelineId,
+    runId,
+    tickCount: tick,
+    stepCount,
+    status: "completed",
+    ...(forkedFromRunId && { forkedFromRunId }),
+  });
+}
+
+interface RecordSymbolicActionParams {
+  context: Record<string, any>;
+  entry: SymbolicObject;
+  transformationId: string; //
+  instrumentId: string;
+  purpose: string;
+  tick: number;
+  stepPrefix?: string;
+  outputObject?: SymbolicObject | null;
+}
+
+/**
+ * Records a SymbolicAction in the provided context's artifact store.
+ * Creates a SymbolicAction object based on the given parameters and adds it to the context.
+ * @param params - An object containing entry, transformationId, context, instrumentId, purpose, tick, and optionally outputObject.
+ * @returns A Promise that resolves to the created SymbolicAction object.
+ */
+export const recordSymbolicAction = async ({
+  entry,
+  transformationId,
+  context,
+  instrumentId,
+  purpose,
+  tick,
+  outputObject,
+}: RecordSymbolicActionParams): Promise<SymbolicAction> => {
+  const action = World.createObject<SymbolicAction>("SymbolicAction", {
+    id: `action-${crypto.randomUUID()}`,
+    label: `${entry.type} Action`,
+    transformationId,
+    actorId:
+      outputObject?.rootId ??
+      context.subjectiveFrame?.id ??
+      entry.rootId ??
+      "unknown-actor",
+    contextId: context.contextualFrame?.id ?? "unknown-context",
+    instrumentId: instrumentId ?? context.instrumentId ?? "default-instrument", // Use provided instrumentId or default
+    purpose: purpose ?? context.purpose ?? "default-purpose", // Use provided purpose or default
+    inputId: outputObject?.rootId ?? entry.rootId ?? entry.id,
+    outputId: outputObject?.id ?? entry.id,
+    rootId: "action-root", // all actions are linked to a root action
+    status: "completed",
+    tick,
+  });
+
+  addToArtifacts(context, action);
+  return action;
+};
+
+/**
+ * Adds an object to the context's artifact map using the object's id as the key.
+ * @param context - The context object containing an _artifactsById Map.
+ * @param obj - The object to add; must have an 'id' property.
+ */
+export function addToArtifacts(context: Record<string, any>, obj: any) {
+  if (!obj?.id) return;
+  context._artifactsById.set(obj.id, obj);
+}
+
+/**
+ * Recursively flattens a nested structure of symbolic objects into a flat array.
+ * Only objects with both 'id' and 'type' properties are included.
+ * @param obj - The root object or collection to flatten.
+ * @returns An array of SymbolicObject instances found in the structure.
+ */
+export function flattenSymbolicObjects(obj: any): SymbolicObject[] {
+  const results: SymbolicObject[] = [];
+  const seen = new Set<string>();
+  const stack: any[] = [obj];
+
+  while (stack.length) {
+    const current = stack.pop();
+    if (!current || typeof current !== "object") continue;
+
+    if (current.id && current.type && !seen.has(current.id)) {
+      seen.add(current.id);
+      results.push(current as SymbolicObject);
+    }
+
+    for (const val of Object.values(current)) {
+      stack.push(val);
+    }
+  }
+
+  return results;
+}
+import {
+  type SymbolicObject,
+  type WorldFrame,
+  type WorldInstance,
+} from "../types";
+
+import chalk from "chalk";
+
+/**
+ * Converts a WorldInstance into a WorldFrame representation.
+ * @param world - The WorldInstance to convert.
+ * @returns A WorldFrame object representing the world state.
+ */
+export function toWorldFrame(world: WorldInstance): WorldFrame {
+  return createObject("WorldFrame", {
+    description: `World frame for tick ${world.tick}`,
+    id: `frame-${world.tick}`,
+    tick: world.tick,
+    step: world.step,
+    runId: world.runId,
+    pipelineId: world.pipelineId,
+    members: Array.from(world.artifacts.values()),
+    metadata: {
+      artifactCount: world.artifacts.size,
+    },
+  });
+}
+
+/**
+ * Converts a WorldFrame back into a WorldInstance.
+ * @param frame - The WorldFrame to convert.
+ * @returns A WorldInstance reconstructed from the frame.
+ */
+export function toWorldInstance(frame: WorldFrame): WorldInstance {
+  return {
+    id: frame.id || `world-${frame.tick}`,
+    tick: frame.tick,
+    step: frame.step,
+    runId: frame.runId,
+    pipelineId: frame.pipelineId,
+    artifacts: new Map(
+      frame.members.map((m) => [m.id, m] as [string, SymbolicObject])
+    ),
+    context: new Map(),
+  };
+}
+
+/**
+ * Adds one or more SymbolicObjects to the world's artifacts.
+ * @param world - The WorldInstance to add objects to.
+ * @param obj - A single SymbolicObject or an array of SymbolicObjects to add.
+ */
+export function addToWorld(
+  world: WorldInstance,
+  obj: SymbolicObject | SymbolicObject[]
+) {
+  const list = Array.isArray(obj) ? obj : [obj];
+  for (const o of list) {
+    if (!o.createdAt) o.createdAt = new Date().toISOString();
+    world.artifacts.set(o.id, o);
+  }
+}
+
+/**
+ * Removes one or more objects from the world's artifacts by ID or object reference.
+ * @param world - The WorldInstance to remove objects from.
+ * @param id - A string ID, an array of IDs, a SymbolicObject, or an array of SymbolicObjects to remove.
+ */
+export function removeFromWorld(
+  world: WorldInstance,
+  id: string | string[] | SymbolicObject | SymbolicObject[]
+) {
+  const ids = Array.isArray(id)
+    ? id.map((i) => (typeof i === "string" ? i : i.id))
+    : [typeof id === "string" ? id : id.id];
+
+  for (const objId of ids) {
+    if (world.artifacts.has(objId)) {
+      world.artifacts.delete(objId);
+    } else {
+      console.warn(
+        chalk.yellow(
+          `[symbolos] Warning: Object with ID ${objId} not found in world.`
+        )
+      );
+    }
+  }
+}
+
+/**
+ * Creates a forked copy of a WorldInstance with optional new parameters.
+ * @param sourceWorld - The original WorldInstance to fork.
+ * @param newParams - Optional parameters to include in the forked world's context.
+ * @returns A new WorldInstance forked from the source.
+ */
+export function forkWorld(
+  sourceWorld: WorldInstance,
+  newParams?: Record<string, any>
+): WorldInstance {
+  const artifacts = new Map<string, SymbolicObject>();
+  for (const [id, obj] of sourceWorld.artifacts.entries()) {
+    artifacts.set(id, obj);
+  }
+  const newId = "forked-" + crypto.randomUUID();
+  return {
+    id: newId,
+    tick: sourceWorld.tick,
+    step: sourceWorld.step,
+    runId: newId,
+    pipelineId: sourceWorld.pipelineId,
+    artifacts,
+    context: {
+      _artifactsById: artifacts,
+      ...sourceWorld.context,
+      forkedFromRunId: sourceWorld.runId,
+      ...(newParams ? { pipelineArgs: { params: newParams } } : {}),
+    },
+  };
+}
+
+/**
+ * Creates a new WorldInstance with optional IDs.
+ * @param worldId - Optional ID for the world.
+ * @param runId - Optional run ID for the world.
+ * @returns A new WorldInstance object.
+ */
+export function createWorld(worldId?: string, runId?: string): WorldInstance {
+  const id = worldId || "world-" + crypto.randomUUID();
+  return {
+    id,
+    tick: 0,
+    step: 0,
+    runId: runId || new Date().toISOString().replace(/[:.]/g, "-"),
+    pipelineId: worldId || "world-" + crypto.randomUUID(),
+    artifacts: new Map<string, SymbolicObject>(),
+    context: {},
+  };
+}
+
+/**
+ * Creates a new SymbolicObject of a specified type with given data.
+ * @param type - The type of the object to create.
+ * @param data - Partial data to initialize the object with, excluding type and timestamps.
+ * @returns A new SymbolicObject of the specified type.
+ */
+export function createObject<T extends SymbolicObject = SymbolicObject>(
+  type: T["type"],
+  data: Omit<Partial<T>, "type" | "createdAt" | "updatedAt">
+): T {
+  const id =
+    data.id ??
+    `${type
+      .replace(/([a-z])([A-Z])/g, "$1-$2")
+      .toLowerCase()}-${crypto.randomUUID()}`;
+  return {
+    ...data,
+    id,
+    type,
+    rootId: data.rootId ?? id,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  } as T;
+}
+import type { SymbolicObject, WorldFrame, WorldInstance } from "../types";
+import {
+  createObject,
+  createWorld,
+  forkWorld,
+  toWorldFrame,
+} from "./world-actions";
+
+/**
+ * Symbolic interface for manipulating and querying a WorldInstance.
+ * Provides utility methods for adding, retrieving, and managing symbolic objects,
+ * as well as forking, ticking, and converting world state representations.
+ */
+export class World {
+  /**
+   * Creates a new World interface for the given WorldInstance.
+   * @param instance The underlying WorldInstance to manipulate.
+   */
+  constructor(private instance: WorldInstance) {}
+
+  /** Reference to the object creation utility. */
+  static createObject = createObject;
+  /** Converts a WorldInstance to a WorldFrame. */
+  static toWorldFrame = toWorldFrame;
+  /** Reference to the world creation utility. */
+  static createWorld = createWorld;
+
+  /**
+   * Adds one or more symbolic objects to the world.
+   * Invalid or malformed objects are skipped.
+   * @param objects A single SymbolicObject or an array of SymbolicObjects to add.
+   * @returns This World instance, for chaining.
+   */
+  add(objects: SymbolicObject | SymbolicObject[]): this {
+    const list = Array.isArray(objects) ? objects : [objects];
+    for (const obj of list) {
+      if (!obj || typeof obj !== "object" || !obj.id || !obj.type) {
+        console.warn("[World.add] Skipping invalid object:", obj);
+        continue;
+      }
+      if (!obj.createdAt) obj.createdAt = new Date().toISOString();
+      this.instance.artifacts.set(obj.id, obj);
+    }
+    return this;
+  }
+
+  /**
+   * Retrieves a symbolic object by its unique ID.
+   * @param id The ID of the object to retrieve.
+   * @returns The object with the given ID, or undefined if not found.
+   */
+  getById<T extends SymbolicObject>(id: string): T | undefined {
+    return this.instance.artifacts.get(id) as T | undefined;
+  }
+
+  /**
+   * Returns all symbolic objects in the world.
+   * @returns An array of all SymbolicObjects.
+   */
+  getAll(): SymbolicObject[] {
+    return Array.from(this.instance.artifacts.values());
+  }
+
+  /**
+   * Returns all objects of the specified type.
+   * @param type The symbolic type to filter by.
+   * @returns An array of objects matching the type.
+   */
+  getByType<T extends SymbolicObject>(type: string): T[] {
+    return Array.from(this.instance.artifacts.values()).filter(
+      (o) => o.type === type
+    ) as T[];
+  }
+
+  /**
+   * Forks the current world, producing a new World instance with copied state.
+   * @returns A new World instance representing the forked world.
+   */
+  fork(): World {
+    const forked = forkWorld(this.instance);
+    return new World(forked);
+  }
+
+  /**
+   * Advances the world's tick counter by one.
+   * @returns This World instance, for chaining.
+   */
+  tickForward(): this {
+    this.instance.tick += 1;
+    return this;
+  }
+
+  /**
+   * Converts the current world state to a WorldFrame.
+   * @returns A WorldFrame representing the current state.
+   */
+  toFrame(): WorldFrame {
+    return toWorldFrame(this.instance);
+  }
+
+  /**
+   * Returns the underlying WorldInstance for this World.
+   * @returns The backing WorldInstance object.
+   */
+  toInstance(): WorldInstance {
+    return this.instance;
+  }
+
+  /**
+   * Returns the most recently created object of the given type, based on tick.
+   * @param type The symbolic type to filter by.
+   * @returns The latest object of the specified type, or undefined.
+   */
+  getLatestOfType<T extends SymbolicObject>(type: string): T | undefined {
+    return Array.from(this.instance.artifacts.values())
+      .filter((o) => o.type === type)
+      .sort((a, b) => (b.tick ?? 0) - (a.tick ?? 0))[0] as T | undefined;
+  }
+}
+export * from "./simulators/run-world-pipeline";
+export * from "./types";
+export { World } from "./lib/world-context";
